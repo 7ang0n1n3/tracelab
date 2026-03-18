@@ -14,27 +14,51 @@ Self-hosted browser test automation platform. Write, run, and monitor Playwright
 
 ## Quick Start
 
-### Requirements
+TraceLab can be run two ways — in Docker (recommended) or directly on your local machine.
 
-- Docker and Docker Compose
+---
 
-### Run
+### Option 1 — Docker
+
+**Requirements:** Docker and Docker Compose
 
 ```bash
-docker compose up -d
+# Start
+./start-docker.sh start
+
+# Stop
+./start-docker.sh stop
 ```
 
-Open [http://localhost:3000](http://localhost:3000) and sign in with the default admin account:
+Additional flags:
+
+```bash
+./start-docker.sh start --build   # Rebuild images before starting
+./start-docker.sh start --logs    # Follow logs after start
+```
+
+---
+
+### Option 2 — Local (no Docker)
+
+**Requirements:** Node.js 22+
+
+```bash
+# Start (installs dependencies automatically on first run)
+./start-local.sh
+```
+
+Press `Ctrl+C` to stop all services. Logs are written to `.logs/` and streamed to the terminal.
+
+---
+
+Once running, open [http://localhost:3000](http://localhost:3000) and sign in with the default admin account:
 
 | Username | Password |
 |----------|----------|
 | sysadmin | qazxsw   |
 
-### Stop
-
-```bash
-docker compose down
-```
+> Change the default password after first login via the Users page (`/admin/users`).
 
 ## Configuration
 
