@@ -23,8 +23,9 @@ node_modules/
 # Test run screenshots captured in runner
 runner/screenshots/
 
-# Security audit — local reference only
+# Local reference docs — not for version control
 SECURITY_AUDIT.md
+requirements.md
 
 # OS
 .DS_Store
