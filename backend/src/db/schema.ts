@@ -94,10 +94,11 @@ export function initSchema() {
   const existing = db.prepare("SELECT id FROM users WHERE username = 'sysadmin'").get();
   if (!existing) {
     const now = Date.now();
+    const adminId = crypto.randomUUID();
     db.prepare(
       "INSERT INTO users (id, username, password_hash, role, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)"
     ).run(
-      crypto.randomUUID(),
+      adminId,
       "sysadmin",
       hashPassword("qazxsw"),
       "admin",
@@ -105,5 +106,38 @@ export function initSchema() {
       now
     );
     console.log("[TraceLab] Default admin user created: sysadmin / qazxsw");
+
+    // Seed sample test owned by the admin
+    db.prepare(
+      "INSERT INTO tests (id, user_id, name, description, app_name, base_url, script, tags, use_auth, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+    ).run(
+      crypto.randomUUID(),
+      adminId,
+      "DuckDuckGo — Arch Linux search",
+      "Sample test: verifies the runner can launch a browser, navigate to DuckDuckGo, perform a search, and capture a screenshot. Run this after a fresh install to confirm the setup is working correctly.",
+      "DuckDuckGo",
+      "https://duckduckgo.com",
+      `// Sample TraceLab test — DuckDuckGo search
+// Run this to verify your Playwright runner is set up correctly.
+
+await page.goto('https://duckduckgo.com');
+log('Navigated to DuckDuckGo');
+
+await page.locator('input[name="q"]').fill('Arch Linux');
+await takeScreenshot('search-filled');
+
+await page.keyboard.press('Enter');
+await page.waitForSelector('#r1-0', { timeout: 10000 });
+log('Search results loaded');
+
+await takeScreenshot('search-results');
+log('Sample test complete — runner is working correctly');
+`,
+      JSON.stringify(["sample", "smoke"]),
+      0,
+      now,
+      now
+    );
+    console.log("[TraceLab] Sample test created: DuckDuckGo — Arch Linux search");
   }
 }
