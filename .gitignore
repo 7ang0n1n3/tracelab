@@ -23,6 +23,9 @@ node_modules/
 # Test run screenshots captured in runner
 runner/screenshots/
 
+# Security audit — local reference only
+SECURITY_AUDIT.md
+
 # OS
 .DS_Store
 Thumbs.db
