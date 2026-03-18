@@ -10,12 +10,14 @@ import { Button } from "@/components/ui/Button";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { RecorderPanel } from "@/components/recorder/RecorderPanel";
 import { ArrowLeft, Play, Save, Trash2, Copy } from "lucide-react";
+import { useTheme } from "@/context/ThemeContext";
 
 const MonacoEditor = dynamic(() => import("@monaco-editor/react"), { ssr: false });
 
 export default function TestDetailPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
+  const { theme } = useTheme();
   const [test, setTest] = useState<any>(null);
   const [runs, setRuns] = useState<any[]>([]);
   const [authStates, setAuthStates] = useState<any[]>([]);
@@ -212,7 +214,7 @@ export default function TestDetailPage() {
           language="javascript"
           value={script}
           onChange={(v) => { setScript(v ?? ""); markDirty(); }}
-          theme="vs-dark"
+          theme={theme === "dark" ? "vs-dark" : "vs"}
           options={{
             minimap: { enabled: false },
             fontSize: 13,

@@ -6,6 +6,22 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [0.0.3] — 2026-03-19
+
+### Added
+- Dark / light mode toggle with persistence via `localStorage`
+- Theme-aware CSS custom properties (RGB channel format) backing all design tokens — opacity modifiers (`bg-accent/20`, `border-border/50`, etc.) work correctly in both themes
+- Sun / Moon toggle button in the sidebar footer
+- Flash-of-unstyled-content (FOUC) prevention — inline script in `<head>` applies the saved theme class before first paint
+- Monaco editor switches between `vs-dark` and `vs` themes to match the active mode
+
+### Changed
+- All custom Tailwind colors (`bg`, `accent`, `border`, `muted`) now resolve via CSS variables, making them automatically theme-aware across every component with no per-component changes
+- Status badges, hardcoded `text-slate-*`, and semantic text colors (`text-red-400`, `text-blue-400`, etc.) remapped to accessible high-contrast values in light mode
+- Scrollbar track and thumb colours follow the active theme
+
+---
+
 ## [0.0.2] — 2026-03-18
 
 ### Added

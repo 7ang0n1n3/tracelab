@@ -7,20 +7,20 @@ const config: Config = {
     extend: {
       colors: {
         bg: {
-          DEFAULT: "#0d0d14",
-          surface: "#13131f",
-          elevated: "#1a1a2e",
+          DEFAULT: "rgb(var(--color-bg) / <alpha-value>)",
+          surface:  "rgb(var(--color-bg-surface) / <alpha-value>)",
+          elevated: "rgb(var(--color-bg-elevated) / <alpha-value>)",
         },
         accent: {
-          DEFAULT: "#7c3aed",
-          bright: "#a855f7",
-          dim: "#4c1d95",
+          DEFAULT: "rgb(var(--color-accent) / <alpha-value>)",
+          bright:  "rgb(var(--color-accent-bright) / <alpha-value>)",
+          dim:     "rgb(var(--color-accent-dim) / <alpha-value>)",
         },
         success: "#22c55e",
-        danger: "#ef4444",
+        danger:  "#ef4444",
         warning: "#f59e0b",
-        muted: "#6b7280",
-        border: "#1f1f35",
+        muted:   "rgb(var(--color-muted) / <alpha-value>)",
+        border:  "rgb(var(--color-border) / <alpha-value>)",
       },
       fontFamily: {
         mono: ["JetBrains Mono", "Fira Code", "monospace"],

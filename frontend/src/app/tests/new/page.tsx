@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/Button";
 import { RecorderPanel } from "@/components/recorder/RecorderPanel";
 import { ArrowLeft, Save } from "lucide-react";
 import Link from "next/link";
+import { useTheme } from "@/context/ThemeContext";
 
 const MonacoEditor = dynamic(() => import("@monaco-editor/react"), { ssr: false });
 
@@ -21,6 +22,7 @@ await takeScreenshot('home');
 
 export default function NewTestPage() {
   const router = useRouter();
+  const { theme } = useTheme();
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [appName, setAppName] = useState("");
@@ -115,7 +117,7 @@ export default function NewTestPage() {
           language="javascript"
           value={script}
           onChange={(v) => setScript(v ?? "")}
-          theme="vs-dark"
+          theme={theme === "dark" ? "vs-dark" : "vs"}
           options={{
             minimap: { enabled: false },
             fontSize: 13,

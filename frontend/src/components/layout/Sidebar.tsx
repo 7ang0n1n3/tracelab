@@ -13,14 +13,17 @@ import {
   Zap,
   Users,
   LogOut,
+  Sun,
+  Moon,
 } from "lucide-react";
+import { useTheme } from "@/context/ThemeContext";
 
 const nav = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/tests", label: "Tests", icon: FlaskConical },
-  { href: "/runs", label: "Runs", icon: PlayCircle },
-  { href: "/auth", label: "Auth States", icon: KeyRound },
-  { href: "/settings", label: "Settings", icon: Settings },
+  { href: "/tests",     label: "Tests",     icon: FlaskConical },
+  { href: "/runs",      label: "Runs",      icon: PlayCircle },
+  { href: "/auth",      label: "Auth States", icon: KeyRound },
+  { href: "/settings",  label: "Settings",  icon: Settings },
 ];
 
 const adminNav = [
@@ -30,6 +33,7 @@ const adminNav = [
 export function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
+  const { theme, toggleTheme } = useTheme();
   const [user, setUser] = useState<{ username: string; role: string } | null>(null);
 
   useEffect(() => {
@@ -78,8 +82,19 @@ export function Sidebar() {
         })}
       </nav>
 
-      {/* User footer */}
-      <div className="px-4 py-3 border-t border-border">
+      {/* Footer */}
+      <div className="px-4 py-3 border-t border-border space-y-2">
+        {/* Theme toggle */}
+        <button
+          onClick={toggleTheme}
+          title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+          className="w-full flex items-center gap-2 px-3 py-1.5 rounded-md text-xs text-muted hover:text-slate-200 hover:bg-bg-elevated transition-colors"
+        >
+          {theme === "dark" ? <Sun size={13} /> : <Moon size={13} />}
+          {theme === "dark" ? "Light mode" : "Dark mode"}
+        </button>
+
+        {/* User */}
         {user && (
           <div className="flex items-center justify-between gap-2">
             <div className="min-w-0">
@@ -94,9 +109,6 @@ export function Sidebar() {
               <LogOut size={13} />
             </button>
           </div>
-        )}
-        {!user && (
-          <div className="text-xs text-muted">v1.0.0 · lab</div>
         )}
       </div>
     </aside>

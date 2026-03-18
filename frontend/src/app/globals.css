@@ -2,31 +2,76 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ─── Design tokens ──────────────────────────────────────────── */
+
+:root {
+  /* Light mode (default) */
+  --color-bg:             240 240 250;
+  --color-bg-surface:     255 255 255;
+  --color-bg-elevated:    230 230 245;
+  --color-accent:         124  58 237;
+  --color-accent-bright:  109  40 217;
+  --color-accent-dim:     237 233 254;
+  --color-border:         210 210 232;
+  --color-muted:          107 114 128;
+  --color-foreground:      20  20  40;
+}
+
+.dark {
+  --color-bg:              13  13  20;
+  --color-bg-surface:      19  19  31;
+  --color-bg-elevated:     26  26  46;
+  --color-accent:         124  58 237;
+  --color-accent-bright:  168  85 247;
+  --color-accent-dim:      76  29 149;
+  --color-border:          31  31  53;
+  --color-muted:          107 114 128;
+  --color-foreground:     226 232 240;
+}
+
 html,
 body {
-  background-color: #0d0d14;
-  color: #e2e8f0;
+  background-color: rgb(var(--color-bg));
+  color: rgb(var(--color-foreground));
 }
 
-/* Custom scrollbar */
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
-::-webkit-scrollbar-track {
-  background: #13131f;
-}
-::-webkit-scrollbar-thumb {
-  background: #1f1f35;
-  border-radius: 3px;
-}
-::-webkit-scrollbar-thumb:hover {
-  background: #4c1d95;
-}
+/* ─── Scrollbar ──────────────────────────────────────────────── */
 
-/* Status badge colors */
-.status-pending  { @apply bg-yellow-900/40 text-yellow-400 border border-yellow-700/40; }
-.status-running  { @apply bg-blue-900/40 text-blue-400 border border-blue-700/40; }
-.status-passed   { @apply bg-green-900/40 text-green-400 border border-green-700/40; }
-.status-failed   { @apply bg-red-900/40 text-red-400 border border-red-700/40; }
-.status-error    { @apply bg-orange-900/40 text-orange-400 border border-orange-700/40; }
+::-webkit-scrollbar        { width: 6px; height: 6px; }
+::-webkit-scrollbar-track  { background: rgb(var(--color-bg-surface)); }
+::-webkit-scrollbar-thumb  { background: rgb(var(--color-border)); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: rgb(var(--color-accent)); }
+
+/* ─── Status badges ──────────────────────────────────────────── */
+
+/* Dark (default) */
+.status-pending { @apply bg-yellow-900/40 text-yellow-400  border border-yellow-700/40; }
+.status-running { @apply bg-blue-900/40   text-blue-400    border border-blue-700/40; }
+.status-passed  { @apply bg-green-900/40  text-green-400   border border-green-700/40; }
+.status-failed  { @apply bg-red-900/40    text-red-400     border border-red-700/40; }
+.status-error   { @apply bg-orange-900/40 text-orange-400  border border-orange-700/40; }
+
+/* Light overrides */
+html:not(.dark) .status-pending { @apply bg-yellow-50  text-yellow-700  border-yellow-300; }
+html:not(.dark) .status-running { @apply bg-blue-50    text-blue-700    border-blue-300; }
+html:not(.dark) .status-passed  { @apply bg-green-50   text-green-700   border-green-300; }
+html:not(.dark) .status-failed  { @apply bg-red-50     text-red-700     border-red-300; }
+html:not(.dark) .status-error   { @apply bg-orange-50  text-orange-700  border-orange-300; }
+
+/* ─── Hardcoded slate text → light mode flip ─────────────────── */
+
+html:not(.dark) .text-slate-100 { color: #0f172a; }
+html:not(.dark) .text-slate-200 { color: #1e293b; }
+html:not(.dark) .text-slate-300 { color: #334155; }
+
+/* ─── Semantic text → light mode flip ───────────────────────── */
+
+html:not(.dark) .text-red-400    { color: #b91c1c; }
+html:not(.dark) .text-red-300    { color: #b91c1c; }
+html:not(.dark) .text-yellow-400 { color: #a16207; }
+html:not(.dark) .text-blue-400   { color: #1d4ed8; }
+html:not(.dark) .text-blue-300   { color: #1d4ed8; }
+html:not(.dark) .text-green-400  { color: #15803d; }
+html:not(.dark) .text-green-300  { color: #15803d; }
+html:not(.dark) .text-orange-400 { color: #c2410c; }
+html:not(.dark) .text-violet-300 { color: #6d28d9; }
