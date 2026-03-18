@@ -38,7 +38,10 @@ export function Sidebar() {
 
   useEffect(() => {
     fetch("/api/auth/me", { credentials: "include" })
-      .then((r) => r.ok ? r.json() : null)
+      .then((r) => {
+        if (r.status === 401) { router.replace("/login"); return null; }
+        return r.ok ? r.json() : null;
+      })
       .then((u) => setUser(u))
       .catch(() => {});
   }, []);
