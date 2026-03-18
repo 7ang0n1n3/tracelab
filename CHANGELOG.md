@@ -1,0 +1,92 @@
+# Changelog
+
+All notable changes to this project will be documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
+
+---
+
+## [0.0.2] — 2026-03-18
+
+### Added
+- Animated running overlay — centered SVG circular lightning bolt displayed during active test runs
+- Live elapsed timer on running overlay in `MM:SS.t` format, counting from run start
+- `start-docker.sh` — shell script to start (`./start-docker.sh start`) and stop (`./start-docker.sh stop`) the stack, with `--build` and `--logs` flags
+- `start-local.sh` — shell script to run the full stack natively without Docker (requires Node.js 22+); auto-installs deps, streams logs, cleans up on Ctrl+C
+
+### Fixed
+- Login page now correctly centered in the viewport (was constrained by the app shell layout)
+- SVG arc rotation on running overlay now uses `requestAnimationFrame` with direct attribute writes, replacing broken CSS/SMIL approaches that stuttered at the 3 o'clock position
+
+---
+
+## [0.0.1] — 2026-03-18
+
+### Added
+
+#### Platform
+- Docker Compose setup with three services: frontend (Next.js), backend (Fastify), runner (Playwright)
+- Bind-mounted `./data/` volume for persistent storage across restarts
+- `Makefile` with common operations (`up`, `down`, `build`, `logs`, `clean`, `install`, dev targets)
+
+#### Authentication & Users
+- Session-based login with httpOnly cookies (`tracelab_session`, 7-day TTL)
+- Password hashing via Node.js built-in `crypto.pbkdf2Sync` (PBKDF2-SHA512, 100k iterations)
+- Three roles: `admin`, `dev`, `qa`
+- Default admin account: `sysadmin` / `qazxsw` — created on first startup
+- Per-user data siloing: Dev and QA users only see their own tests, runs, and auth states
+- Admin global view: admins can see and manage all data
+- Next.js middleware redirecting unauthenticated users to `/login`
+- Admin user management UI at `/admin/users` (create, edit role/password, delete)
+- Logout button and current user display in sidebar
+
+#### Tests
+- Test list with search, app filter, and tag filter
+- Monaco-based test editor with syntax highlighting
+- Playwright codegen recorder — record actions in a live browser, inject generated script into the editor
+- Tags support (comma-separated, displayed as chips)
+- Duplicate test action
+- Test detail page with run history
+
+#### Test Execution
+- Chromium launch via Playwright with configurable settings (headless, slowMo, timeout)
+- Script execution via `new Function()` with injected globals: `page`, `context`, `browser`, `takeScreenshot`, `log`
+- Per-run artifact directory under `./data/artifacts/<runId>/`
+- Automatic failure screenshot on unhandled error
+
+#### Runs
+- Run list with status filter and pagination
+- Run detail page with stats (status, duration, start/finish times)
+- Live log streaming via Server-Sent Events (SSE) during active runs
+- Screenshot gallery with lightbox viewer
+- Inline video player for `.webm`/`.mp4` recordings with download link
+- Error message display for failed runs
+
+#### Artifacts
+- Automatic screenshot capture (configurable)
+- Video recording support (configurable, saved as `.webm`)
+- Trace capture support (configurable)
+- File serving endpoint with MIME type detection and path traversal protection
+
+#### Auth States
+- Saved browser session management (captures Playwright `storageState`)
+- Record new session by launching a headed browser
+- Finish recording via UI button (no manual intervention required)
+- Refresh existing session
+- Auth states can be assigned to tests and reused across runs
+
+#### Settings
+- Global execution settings: headless mode, slow motion delay, timeout, screenshot/video/trace capture toggles
+
+#### Dashboard
+- Recent runs summary
+- Pass/fail status overview
+
+#### Infrastructure
+- SQLite via Node.js 22 built-in `node:sqlite` (no native compilation required)
+- WAL journal mode and foreign key enforcement
+- Schema migration via `ALTER TABLE` with try/catch (safe on existing databases)
+- Automatic session cleanup (expired sessions purged hourly)
+- Fastify backend with CORS, multipart support
+- Runner uses `mcr.microsoft.com/playwright:v1.42.1-jammy` base image with Xvfb for headed mode
+- Playwright pinned to exact version `1.42.1` to match runner image

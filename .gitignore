@@ -1,0 +1,34 @@
+# Environment — never commit secrets
+.env
+.env.local
+.env.*.local
+
+# Runtime data — contains DB, sessions, auth tokens, artifacts
+data/db/
+data/artifacts/
+data/auth/
+data/tests/
+
+# Dependencies
+node_modules/
+**/node_modules/
+
+# Build output
+**/dist/
+**/.next/
+
+# Local dev logs
+.logs/
+
+# Test run screenshots captured in runner
+runner/screenshots/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo

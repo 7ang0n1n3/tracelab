@@ -1,0 +1,23 @@
+{
+  "name": "tracelab-runner",
+  "version": "0.0.2",
+  "private": true,
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js"
+  },
+  "dependencies": {
+    "@playwright/test": "1.42.1",
+    "playwright": "1.42.1",
+    "fastify": "^4.26.2",
+    "@fastify/cors": "^9.0.1",
+    "uuid": "^9.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.30",
+    "@types/uuid": "^9.0.8",
+    "tsx": "^4.7.1",
+    "typescript": "^5.4.2"
+  }
+}

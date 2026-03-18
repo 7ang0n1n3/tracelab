@@ -1,0 +1,48 @@
+services:
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        - INTERNAL_API_URL=http://backend:4000
+    ports:
+      - "${FRONTEND_PORT:-3000}:3000"
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "${BACKEND_PORT:-4000}:4000"
+    environment:
+      - DATABASE_PATH=/data/db/tracelab.db
+      - ARTIFACTS_PATH=/data/artifacts
+      - AUTH_STATE_PATH=/data/auth
+      - TESTS_PATH=/data/tests
+      - RUNNER_URL=http://runner:5000
+      - PORT=4000
+    volumes:
+      - ./data:/data
+    depends_on:
+      - runner
+    restart: unless-stopped
+
+  runner:
+    build:
+      context: ./runner
+      dockerfile: Dockerfile
+    ports:
+      - "${RUNNER_PORT:-5000}:5000"
+    environment:
+      - ARTIFACTS_PATH=/data/artifacts
+      - AUTH_STATE_PATH=/data/auth
+      - TESTS_PATH=/data/tests
+      - PORT=5000
+      - DISPLAY=:99
+    volumes:
+      - ./data:/data
+    shm_size: "2gb"
+    restart: unless-stopped
