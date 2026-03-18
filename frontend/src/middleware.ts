@@ -19,11 +19,13 @@ export function middleware(req: NextRequest) {
     return NextResponse.next();
   }
 
-  // Check session cookie
+  // Check session cookie exists (value validation happens on the backend)
   const session = req.cookies.get("tracelab_session");
   if (!session?.value) {
     const loginUrl = new URL("/login", req.url);
-    return NextResponse.redirect(loginUrl);
+    const res = NextResponse.redirect(loginUrl);
+    res.cookies.delete("tracelab_session");
+    return res;
   }
 
   return NextResponse.next();
