@@ -6,6 +6,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [0.0.4] — 2026-03-19
+
+### Added
+- Sample test seeded on first install — "DuckDuckGo — Arch Linux search" is pre-loaded under the `sysadmin` account so new users can immediately verify the runner is working without writing any code
+
+### Fixed
+- Stale session cookie no longer bypasses the login screen after a data reset or reinstall — middleware clears the cookie on redirect and the sidebar redirects to login on any 401 response
+
+---
+
 ## [0.0.3] — 2026-03-19
 
 ### Added
