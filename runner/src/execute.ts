@@ -1,6 +1,7 @@
 import { chromium, Browser, BrowserContext } from "playwright";
 import path from "path";
 import fs from "fs";
+import vm from "vm";
 
 const ARTIFACTS_PATH = process.env.ARTIFACTS_PATH || "./data/artifacts";
 
@@ -89,17 +90,15 @@ export async function executeScript(opts: ExecuteOptions): Promise<ExecuteResult
 
     log("Running test script...");
 
-    // Use Function constructor to execute script with page/context in scope
-    const scriptFn = new Function(
-      "page",
-      "context",
-      "browser",
-      "takeScreenshot",
-      "log",
-      `return (async () => { ${script} })();`
-    );
+    if (script.length > 512 * 1024) {
+      throw new Error("Script exceeds maximum allowed size (512KB)");
+    }
 
-    await scriptFn(page, context, browser, takeScreenshot, log);
+    // Run in a vm context to restrict direct access to Node.js globals
+    // (require, process, __dirname, etc. are not available in the sandbox)
+    const sandbox = vm.createContext({ page, context, browser, takeScreenshot, log });
+    const promise = vm.runInContext(`(async () => { ${script} })()`, sandbox, { displayErrors: true });
+    await promise;
 
     if (config.captureScreenshots && screenshotPaths.length === 0) {
       await takeScreenshot("final");

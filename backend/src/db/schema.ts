@@ -90,6 +90,15 @@ export function initSchema() {
     insertSetting.run(key, value);
   }
 
+  // Generate persistent HMAC secret for session token hashing
+  const secretExists = db.prepare("SELECT 1 FROM settings WHERE key = 'session_secret'").get();
+  if (!secretExists) {
+    db.prepare("INSERT INTO settings (key, value) VALUES (?, ?)").run(
+      "session_secret",
+      crypto.randomBytes(32).toString("hex")
+    );
+  }
+
   // Seed default admin user
   const existing = db.prepare("SELECT id FROM users WHERE username = 'sysadmin'").get();
   if (!existing) {

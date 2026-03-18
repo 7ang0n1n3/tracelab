@@ -19,7 +19,8 @@ const recordingSessions: Map<string, { close: () => Promise<void> }> = new Map()
 const codegenSessions: Map<string, { proc: ChildProcess; outputFile: string }> = new Map();
 
 async function main() {
-  await app.register(cors, { origin: true });
+  const BACKEND_URL = process.env.BACKEND_URL || "http://backend:4000";
+  await app.register(cors, { origin: [BACKEND_URL, "http://localhost:4000"] });
 
   app.get("/health", async () => ({ status: "ok" }));
 

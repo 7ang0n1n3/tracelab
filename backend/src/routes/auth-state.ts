@@ -15,6 +15,12 @@ function canAccess(userId: string, role: string, state: AuthState): boolean {
   return !state.user_id || state.user_id === userId;
 }
 
+function isSafePath(filePath: string): boolean {
+  const resolved = path.resolve(filePath);
+  const base = path.resolve(AUTH_STATE_PATH);
+  return resolved.startsWith(base + path.sep);
+}
+
 export async function authStateRoutes(app: FastifyInstance) {
   // List auth states
   app.get("/api/auth-states", { preHandler: requireAuth }, async (req) => {
@@ -68,6 +74,9 @@ export async function authStateRoutes(app: FastifyInstance) {
       return reply.status(403).send({ error: "Forbidden" });
     }
 
+    if (!isSafePath(state.file_path)) {
+      return reply.status(400).send({ error: "Invalid auth state path" });
+    }
     try {
       const response = await axios.post(`${RUNNER_URL}/record-auth`, {
         authStateId: id,
@@ -87,6 +96,9 @@ export async function authStateRoutes(app: FastifyInstance) {
     if (!state) return reply.status(404).send({ error: "Not found" });
     if (!canAccess(req.user!.id, req.user!.role, state)) {
       return reply.status(403).send({ error: "Forbidden" });
+    }
+    if (!isSafePath(state.file_path)) {
+      return reply.status(400).send({ error: "Invalid auth state path" });
     }
 
     if (fs.existsSync(state.file_path)) fs.unlinkSync(state.file_path);

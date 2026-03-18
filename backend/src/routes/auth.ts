@@ -4,11 +4,42 @@ import { User } from "../types";
 import { verifyPassword, createSession, deleteSession } from "../auth/session";
 import { requireAuth } from "../auth/middleware";
 
-const COOKIE_OPTS = "HttpOnly; Path=/; SameSite=Lax; Max-Age=604800";
+// In-memory rate limiter: 5 failures per IP within 15 minutes triggers lockout
+const failedAttempts = new Map<string, { count: number; resetAt: number }>();
+const RATE_LIMIT_MAX = 5;
+const RATE_LIMIT_WINDOW_MS = 15 * 60 * 1000;
+
+function isRateLimited(ip: string): boolean {
+  const entry = failedAttempts.get(ip);
+  if (!entry) return false;
+  if (Date.now() > entry.resetAt) { failedAttempts.delete(ip); return false; }
+  return entry.count >= RATE_LIMIT_MAX;
+}
+function recordFailure(ip: string): void {
+  const entry = failedAttempts.get(ip);
+  if (!entry || Date.now() > entry.resetAt) {
+    failedAttempts.set(ip, { count: 1, resetAt: Date.now() + RATE_LIMIT_WINDOW_MS });
+  } else {
+    entry.count++;
+  }
+}
+function clearFailures(ip: string): void {
+  failedAttempts.delete(ip);
+}
+
+const isSecure = process.env.HTTPS_ONLY === "true";
+const COOKIE_OPTS = `HttpOnly; Path=/; SameSite=Strict; Max-Age=604800${isSecure ? "; Secure" : ""}`;
 
 export async function authRoutes(app: FastifyInstance) {
   // Login
   app.post("/api/auth/login", async (req, reply) => {
+    const ip = req.ip;
+
+    if (isRateLimited(ip)) {
+      app.log.warn({ ip, event: "rate_limited" }, "Login rate limit exceeded");
+      return reply.status(429).send({ error: "Too many failed attempts. Try again later." });
+    }
+
     const { username, password } = req.body as { username?: string; password?: string };
     if (!username || !password) {
       return reply.status(400).send({ error: "Username and password required" });
@@ -16,16 +47,16 @@ export async function authRoutes(app: FastifyInstance) {
 
     const user = db.prepare("SELECT * FROM users WHERE username = ?").get(username) as User | undefined;
     if (!user || !verifyPassword(password, user.password_hash)) {
+      recordFailure(ip);
+      app.log.warn({ ip, username, event: "login_failed" }, "Failed login attempt");
       return reply.status(401).send({ error: "Invalid credentials" });
     }
 
-    const sessionId = createSession(user.id);
-    reply.header("Set-Cookie", `tracelab_session=${sessionId}; ${COOKIE_OPTS}`);
-    return {
-      id: user.id,
-      username: user.username,
-      role: user.role,
-    };
+    clearFailures(ip);
+    const token = createSession(user.id); // also invalidates any prior sessions for this user
+    app.log.info({ ip, username: user.username, role: user.role, event: "login_success" }, "User logged in");
+    reply.header("Set-Cookie", `tracelab_session=${token}; ${COOKIE_OPTS}`);
+    return { id: user.id, username: user.username, role: user.role };
   });
 
   // Logout
@@ -33,10 +64,10 @@ export async function authRoutes(app: FastifyInstance) {
     const cookieHeader = req.headers.cookie ?? "";
     const pair = cookieHeader.split(";").map((c) => c.trim()).find((c) => c.startsWith("tracelab_session="));
     if (pair) {
-      const sessionId = pair.slice("tracelab_session=".length);
-      deleteSession(sessionId);
+      deleteSession(pair.slice("tracelab_session=".length));
     }
-    reply.header("Set-Cookie", "tracelab_session=; HttpOnly; Path=/; SameSite=Lax; Max-Age=0");
+    app.log.info({ username: req.user?.username, event: "logout" }, "User logged out");
+    reply.header("Set-Cookie", `tracelab_session=; HttpOnly; Path=/; SameSite=Strict; Max-Age=0`);
     return { ok: true };
   });
 

@@ -4,6 +4,20 @@ import { User, Session } from "../types";
 
 const SESSION_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
 
+// Lazily loaded HMAC secret (stored in settings on first boot)
+let _secret: string | null = null;
+function getSecret(): string {
+  if (_secret) return _secret;
+  const row = db.prepare("SELECT value FROM settings WHERE key = 'session_secret'").get() as { value: string } | undefined;
+  _secret = row?.value ?? crypto.randomBytes(32).toString("hex");
+  return _secret;
+}
+
+// Hash raw token before storing — DB compromise alone is not enough to forge sessions
+function hashToken(token: string): string {
+  return crypto.createHmac("sha256", getSecret()).update(token).digest("hex");
+}
+
 export function hashPassword(password: string): string {
   const salt = crypto.randomBytes(16).toString("hex");
   const hash = crypto.pbkdf2Sync(password, salt, 100000, 64, "sha512").toString("hex");
@@ -18,18 +32,22 @@ export function verifyPassword(password: string, stored: string): boolean {
 }
 
 export function createSession(userId: string): string {
-  const id = crypto.randomBytes(32).toString("hex");
+  const token = crypto.randomBytes(32).toString("hex");
+  const tokenHash = hashToken(token);
   const now = Date.now();
+  // Invalidate all existing sessions for this user (prevents session fixation)
+  db.prepare("DELETE FROM sessions WHERE user_id = ?").run(userId);
   db.prepare(
     "INSERT INTO sessions (id, user_id, created_at, expires_at) VALUES (?, ?, ?, ?)"
-  ).run(id, userId, now, now + SESSION_TTL_MS);
-  return id;
+  ).run(tokenHash, userId, now, now + SESSION_TTL_MS);
+  return token; // Raw token sent to client — hash stored in DB
 }
 
-export function getSessionUser(sessionId: string): Omit<User, "password_hash"> | null {
+export function getSessionUser(token: string): Omit<User, "password_hash"> | null {
+  const tokenHash = hashToken(token);
   const session = db.prepare(
     "SELECT * FROM sessions WHERE id = ? AND expires_at > ?"
-  ).get(sessionId, Date.now()) as Session | undefined;
+  ).get(tokenHash, Date.now()) as Session | undefined;
 
   if (!session) return null;
 
@@ -40,11 +58,11 @@ export function getSessionUser(sessionId: string): Omit<User, "password_hash"> |
   return user ?? null;
 }
 
-export function deleteSession(sessionId: string): void {
-  db.prepare("DELETE FROM sessions WHERE id = ?").run(sessionId);
+export function deleteSession(token: string): void {
+  const tokenHash = hashToken(token);
+  db.prepare("DELETE FROM sessions WHERE id = ?").run(tokenHash);
 }
 
-// Purge expired sessions (call periodically)
 export function purgeExpiredSessions(): void {
   db.prepare("DELETE FROM sessions WHERE expires_at <= ?").run(Date.now());
 }

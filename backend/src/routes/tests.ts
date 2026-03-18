@@ -24,8 +24,9 @@ export async function testsRoutes(app: FastifyInstance) {
       params.push(appFilter);
     }
     if (search) {
-      conditions.push("(name LIKE ? OR description LIKE ?)");
-      params.push(`%${search}%`, `%${search}%`);
+      const safe = search.slice(0, 200).replace(/[\\%_]/g, "\\$&");
+      conditions.push("(name LIKE ? ESCAPE '\\' OR description LIKE ? ESCAPE '\\')");
+      params.push(`%${safe}%`, `%${safe}%`);
     }
     if (conditions.length) query += " WHERE " + conditions.join(" AND ");
     query += " ORDER BY updated_at DESC";
