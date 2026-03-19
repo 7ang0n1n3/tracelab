@@ -6,6 +6,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [0.1.3] — 2026-03-19
+
+### Fixed
+- Auth state recording now shows an in-browser noVNC panel in Docker — the runner starts VNC (x11vnc + websockify) before launching the browser against `DISPLAY :99` and returns `vncPort`; the Auth States page shows the same full-screen noVNC iframe modal used by the codegen recorder; VNC is stopped cleanly when Finish is clicked
+
+---
+
 ## [0.1.2] — 2026-03-19
 
 ### Added
