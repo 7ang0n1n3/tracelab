@@ -36,6 +36,8 @@ export default function TestDetailPage() {
   const [script, setScript] = useState("");
   const [authStateId, setAuthStateId] = useState("");
   const [useAuth, setUseAuth] = useState(true);
+  const [browser, setBrowser] = useState<string>("");
+  const [captureVideo, setCaptureVideo] = useState<string>("");
 
   async function load() {
     setLoading(true);
@@ -55,6 +57,8 @@ export default function TestDetailPage() {
       setScript(t.script);
       setAuthStateId(t.auth_state_id ?? "");
       setUseAuth(t.use_auth === 1);
+      setBrowser(t.browser ?? "");
+      setCaptureVideo(t.capture_video === null || t.capture_video === undefined ? "" : t.capture_video === 1 ? "true" : "false");
       // Parse tags from JSON array to comma string
       try {
         const parsed = JSON.parse(t.tags || "[]");
@@ -79,6 +83,8 @@ export default function TestDetailPage() {
         name, description, app_name: appName, base_url: baseUrl,
         script, auth_state_id: authStateId || null, use_auth: useAuth ? 1 : 0,
         tags: tagList.length ? JSON.stringify(tagList) : null,
+        browser: browser || null,
+        capture_video: captureVideo === "" ? null : captureVideo === "true" ? 1 : 0,
       });
       setDirty(false);
     } catch (e: any) {
@@ -170,6 +176,27 @@ export default function TestDetailPage() {
             <input value={tags} onChange={(e) => { setTags(e.target.value); markDirty(); }}
               placeholder="smoke, login, auth"
               className="w-full bg-bg-elevated border border-border rounded px-3 py-2 text-sm text-slate-200 placeholder:text-muted focus:outline-none focus:border-accent" />
+          </div>
+        </div>
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-xs text-muted mb-1">Browser <span className="text-muted/60">(overrides system default)</span></label>
+            <select value={browser} onChange={(e) => { setBrowser(e.target.value); markDirty(); }}
+              className="w-full bg-bg-elevated border border-border rounded px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-accent">
+              <option value="">System default</option>
+              <option value="chromium">Chromium</option>
+              <option value="firefox">Firefox</option>
+              <option value="webkit">WebKit (Safari)</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-xs text-muted mb-1">Record Video <span className="text-muted/60">(overrides system default)</span></label>
+            <select value={captureVideo} onChange={(e) => { setCaptureVideo(e.target.value); markDirty(); }}
+              className="w-full bg-bg-elevated border border-border rounded px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-accent">
+              <option value="">System default</option>
+              <option value="true">On</option>
+              <option value="false">Off</option>
+            </select>
           </div>
         </div>
         <div>

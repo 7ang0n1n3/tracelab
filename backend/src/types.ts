@@ -25,6 +25,8 @@ export interface Test {
   tags: string | null; // JSON array string
   auth_state_id: string | null;
   use_auth: number; // 0 or 1
+  browser: "chromium" | "firefox" | "webkit" | null; // null = use system default
+  capture_video: number | null; // null = use system default, 0 = off, 1 = on
   created_at: number;
   updated_at: number;
 }
@@ -76,6 +78,7 @@ export interface RunConfig {
   captureScreenshots: boolean;
   captureVideo: boolean;
   captureTrace: boolean;
+  browser: "chromium" | "firefox" | "webkit";
 }
 
 export interface RunResult {

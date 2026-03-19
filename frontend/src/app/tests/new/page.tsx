@@ -28,6 +28,8 @@ export default function NewTestPage() {
   const [appName, setAppName] = useState("");
   const [baseUrl, setBaseUrl] = useState("");
   const [tags, setTags] = useState("");
+  const [browser, setBrowser] = useState<string>("");
+  const [captureVideo, setCaptureVideo] = useState<string>("");
   const [script, setScript] = useState(DEFAULT_SCRIPT);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -41,6 +43,8 @@ export default function NewTestPage() {
       const test = await api.tests.create({
         name, description, app_name: appName, base_url: baseUrl, script,
         tags: tagList.length ? JSON.stringify(tagList) : null,
+        browser: browser || null,
+        capture_video: captureVideo === "" ? null : captureVideo === "true" ? 1 : 0,
       });
       router.push(`/tests/${test.id}`);
     } catch (e: any) {
@@ -93,6 +97,27 @@ export default function NewTestPage() {
             <input value={tags} onChange={(e) => setTags(e.target.value)}
               placeholder="smoke, login, auth"
               className="w-full bg-bg-elevated border border-border rounded px-3 py-2 text-sm text-slate-200 placeholder:text-muted focus:outline-none focus:border-accent" />
+          </div>
+        </div>
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-xs text-muted mb-1">Browser <span className="text-muted/60">(overrides system default)</span></label>
+            <select value={browser} onChange={(e) => setBrowser(e.target.value)}
+              className="w-full bg-bg-elevated border border-border rounded px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-accent">
+              <option value="">System default</option>
+              <option value="chromium">Chromium</option>
+              <option value="firefox">Firefox</option>
+              <option value="webkit">WebKit (Safari)</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-xs text-muted mb-1">Record Video <span className="text-muted/60">(overrides system default)</span></label>
+            <select value={captureVideo} onChange={(e) => setCaptureVideo(e.target.value)}
+              className="w-full bg-bg-elevated border border-border rounded px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-accent">
+              <option value="">System default</option>
+              <option value="true">On</option>
+              <option value="false">Off</option>
+            </select>
           </div>
         </div>
         <div>

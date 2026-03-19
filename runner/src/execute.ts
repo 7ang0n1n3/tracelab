@@ -1,4 +1,4 @@
-import { chromium, Browser, BrowserContext } from "playwright";
+import { chromium, firefox, webkit, Browser, BrowserContext } from "playwright";
 import path from "path";
 import fs from "fs";
 import vm from "vm";
@@ -17,6 +17,7 @@ export interface ExecuteOptions {
     captureScreenshots: boolean;
     captureVideo: boolean;
     captureTrace: boolean;
+    browser: "chromium" | "firefox" | "webkit";
   };
 }
 
@@ -47,8 +48,10 @@ export async function executeScript(opts: ExecuteOptions): Promise<ExecuteResult
   let context: BrowserContext | null = null;
 
   try {
-    log("Launching browser...");
-    browser = await chromium.launch({
+    const browserEngines = { chromium, firefox, webkit };
+    const engine = browserEngines[config.browser] ?? chromium;
+    log(`Launching ${config.browser} browser...`);
+    browser = await engine.launch({
       headless: config.headless,
       slowMo: config.slowMo,
     });

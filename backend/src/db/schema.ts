@@ -75,6 +75,8 @@ export function initSchema() {
   // Migrate existing tables (no-op if columns already exist)
   try { db.exec("ALTER TABLE tests ADD COLUMN user_id TEXT REFERENCES users(id) ON DELETE SET NULL"); } catch {}
   try { db.exec("ALTER TABLE auth_states ADD COLUMN user_id TEXT REFERENCES users(id) ON DELETE SET NULL"); } catch {}
+  try { db.exec("ALTER TABLE tests ADD COLUMN browser TEXT"); } catch {}
+  try { db.exec("ALTER TABLE tests ADD COLUMN capture_video INTEGER"); } catch {}
 
   // Default settings
   const defaults: Record<string, string> = {
@@ -84,6 +86,7 @@ export function initSchema() {
     captureScreenshots: "true",
     captureVideo: "false",
     captureTrace: "false",
+    defaultBrowser: "chromium",
   };
   const insertSetting = db.prepare("INSERT OR IGNORE INTO settings (key, value) VALUES (?, ?)");
   for (const [key, value] of Object.entries(defaults)) {

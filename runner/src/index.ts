@@ -39,6 +39,7 @@ async function main() {
         captureScreenshots: boolean;
         captureVideo: boolean;
         captureTrace: boolean;
+        browser: "chromium" | "firefox" | "webkit";
       };
     };
 

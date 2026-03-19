@@ -39,6 +39,21 @@ export default function SettingsPage() {
       </div>
 
       <div className="bg-bg-surface border border-border rounded-lg divide-y divide-border">
+        {/* Default Browser */}
+        <div className="px-5 py-4">
+          <div className="text-sm text-slate-200 mb-1">Default Browser</div>
+          <div className="text-xs text-muted mb-2">Browser engine used when a test has no browser override</div>
+          <select
+            value={settings.defaultBrowser ?? "chromium"}
+            onChange={(e) => set("defaultBrowser", e.target.value)}
+            className="bg-bg-elevated border border-border rounded px-3 py-1.5 text-sm text-slate-200 focus:outline-none focus:border-accent"
+          >
+            <option value="chromium">Chromium</option>
+            <option value="firefox">Firefox</option>
+            <option value="webkit">WebKit (Safari)</option>
+          </select>
+        </div>
+
         {/* Headless */}
         <div className="px-5 py-4 flex items-center justify-between">
           <div>

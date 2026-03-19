@@ -6,6 +6,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [0.0.5] — 2026-03-19
+
+### Added
+- Multi-browser support — tests can now run in Chromium, Firefox, or WebKit (Safari engine); previously Chromium only
+- System-wide default browser setting in Settings — controls which engine is used when a test has no browser override
+- Per-test browser override — each test has a "Browser" selector (System default / Chromium / Firefox / WebKit) that takes precedence over the system setting at run time
+- Per-test Record Video override — each test has a "Record Video" selector (System default / On / Off) that overrides the global capture setting for that test; null/unset falls back to the system setting
+- Database migrations for both new columns (`browser`, `capture_video`) are applied safely on startup — existing databases are upgraded without data loss
+
+---
+
 ## [0.0.4] — 2026-03-19
 
 ### Added

@@ -3,7 +3,8 @@ import db from "../db/client";
 import { requireAuth, requireAdmin } from "../auth/middleware";
 
 // Only expose and allow writes to these keys — prevents tampering with session_secret or other internals
-const ALLOWED_KEYS = new Set(["headless", "slowMo", "timeout", "captureScreenshots", "captureVideo", "captureTrace"]);
+const ALLOWED_KEYS = new Set(["headless", "slowMo", "timeout", "captureScreenshots", "captureVideo", "captureTrace", "defaultBrowser"]);
+const VALID_BROWSERS = new Set(["chromium", "firefox", "webkit"]);
 
 export async function settingsRoutes(app: FastifyInstance) {
   app.get("/api/settings", { preHandler: requireAuth }, async () => {
@@ -17,6 +18,7 @@ export async function settingsRoutes(app: FastifyInstance) {
     db.exec("BEGIN");
     for (const [key, value] of Object.entries(body)) {
       if (!ALLOWED_KEYS.has(key)) continue;
+      if (key === "defaultBrowser" && !VALID_BROWSERS.has(String(value))) continue;
       update.run(key, String(value));
     }
     db.exec("COMMIT");

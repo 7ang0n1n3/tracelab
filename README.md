@@ -1,11 +1,11 @@
-# TraceLab `v0.0.4`
+# TraceLab `v0.0.5`
 
 Self-hosted browser test automation platform. Write, run, and monitor Playwright-based tests through a web UI — no CI pipeline required.
 
 ## Features
 
 - **Test authoring** — Monaco editor with live Playwright codegen recording
-- **Test execution** — Chromium via Playwright with configurable headless/headed mode
+- **Test execution** — Chromium, Firefox, or WebKit via Playwright with configurable headless/headed mode
 - **Live logs** — Real-time execution output streamed via SSE
 - **Artifacts** — Automatic screenshots and video recording per run
 - **Auth states** — Capture and reuse browser login sessions across tests

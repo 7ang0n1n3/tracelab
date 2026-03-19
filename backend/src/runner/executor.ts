@@ -6,9 +6,13 @@ import { Test, RunConfig, RunResult, AuthState } from "../types";
 const RUNNER_URL = process.env.RUNNER_URL || "http://runner:5000";
 const ARTIFACTS_PATH = process.env.ARTIFACTS_PATH || "./data/artifacts";
 
-function getSettings(): RunConfig {
+function getSettings(): RunConfig & { defaultBrowser: "chromium" | "firefox" | "webkit" } {
   const rows = db.prepare("SELECT key, value FROM settings").all() as { key: string; value: string }[];
   const s = Object.fromEntries(rows.map((r) => [r.key, r.value]));
+  const validBrowsers = ["chromium", "firefox", "webkit"] as const;
+  const defaultBrowser = validBrowsers.includes(s.defaultBrowser as any)
+    ? (s.defaultBrowser as "chromium" | "firefox" | "webkit")
+    : "chromium";
   return {
     headless: s.headless !== "false",
     slowMo: parseInt(s.slowMo || "0", 10),
@@ -16,11 +20,20 @@ function getSettings(): RunConfig {
     captureScreenshots: s.captureScreenshots !== "false",
     captureVideo: s.captureVideo === "true",
     captureTrace: s.captureTrace === "true",
+    browser: defaultBrowser,
+    defaultBrowser,
   };
 }
 
 export async function dispatchRun(runId: string, test: Test) {
-  const config = getSettings();
+  const { defaultBrowser, ...config } = getSettings();
+  const validBrowsers = ["chromium", "firefox", "webkit"] as const;
+  config.browser = validBrowsers.includes(test.browser as any)
+    ? (test.browser as "chromium" | "firefox" | "webkit")
+    : defaultBrowser;
+  if (test.capture_video !== null && test.capture_video !== undefined) {
+    config.captureVideo = test.capture_video === 1;
+  }
 
   let authStatePath: string | null = null;
   if (test.use_auth && test.auth_state_id) {
