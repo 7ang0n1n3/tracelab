@@ -21,7 +21,6 @@ services:
       - DATABASE_PATH=/data/db/tracelab.db
       - ARTIFACTS_PATH=/data/artifacts
       - AUTH_STATE_PATH=/data/auth
-      - TESTS_PATH=/data/tests
       - RUNNER_URL=http://runner:5000
       - PORT=4000
     volumes:
@@ -40,7 +39,6 @@ services:
     environment:
       - ARTIFACTS_PATH=/data/artifacts
       - AUTH_STATE_PATH=/data/auth
-      - TESTS_PATH=/data/tests
       - PORT=5000
       - DISPLAY=:99
       - NOVNC_PORT=6080

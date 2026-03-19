@@ -1,6 +1,5 @@
 import Fastify from "fastify";
 import cors from "@fastify/cors";
-import multipart from "@fastify/multipart";
 import { initSchema } from "./db/schema";
 import { testsRoutes } from "./routes/tests";
 import { runsRoutes } from "./routes/runs";
@@ -21,8 +20,6 @@ async function main() {
     origin: [FRONTEND_URL],
     credentials: true,
   });
-  await app.register(multipart);
-
   // Initialize DB schema + seed
   initSchema();
 

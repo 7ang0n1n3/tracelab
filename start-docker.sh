@@ -50,7 +50,7 @@ case "$COMMAND" in
       esac
     done
 
-    mkdir -p data/db data/artifacts data/auth data/tests
+    mkdir -p data/db data/artifacts data/auth
 
     FRONTEND_PORT="${FRONTEND_PORT:-3000}"
     BACKEND_PORT="${BACKEND_PORT:-4000}"

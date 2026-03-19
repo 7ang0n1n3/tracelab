@@ -5,6 +5,8 @@ import { Test } from "../types";
 import { dispatchRun } from "../runner/executor";
 import { requireAuth } from "../auth/middleware";
 
+const VALID_BROWSERS = ["chromium", "firefox", "webkit"];
+
 export async function testsRoutes(app: FastifyInstance) {
   // List tests
   app.get("/api/tests", { preHandler: requireAuth }, async (req) => {
@@ -61,8 +63,7 @@ export async function testsRoutes(app: FastifyInstance) {
     const body = req.body as Partial<Test>;
     const now = Date.now();
     const id = uuidv4();
-    const validBrowsers = ["chromium", "firefox", "webkit"];
-    const browser = validBrowsers.includes(body.browser as string) ? body.browser : null;
+    const browser = VALID_BROWSERS.includes(body.browser as string) ? body.browser : null;
     const captureVideo = body.capture_video != null ? (body.capture_video ? 1 : 0) : null;
     db.prepare(`
       INSERT INTO tests (id, user_id, name, description, app_name, base_url, script, tags, auth_state_id, use_auth, browser, capture_video, created_at, updated_at)
@@ -96,9 +97,8 @@ export async function testsRoutes(app: FastifyInstance) {
       return reply.status(403).send({ error: "Forbidden" });
     }
 
-    const validBrowsers = ["chromium", "firefox", "webkit"];
     const browser = "browser" in body
-      ? (validBrowsers.includes(body.browser as string) ? body.browser : null)
+      ? (VALID_BROWSERS.includes(body.browser as string) ? body.browser : null)
       : existing.browser;
     const captureVideo = "capture_video" in body
       ? (body.capture_video != null ? (body.capture_video ? 1 : 0) : null)
