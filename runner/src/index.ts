@@ -81,6 +81,8 @@ async function main() {
       };
     };
 
+    const useVnc = !body.config.headless;
+    if (useVnc) await startVnc(body.runId);
     try {
       const result = await executeScript({
         runId: body.runId,
@@ -92,6 +94,8 @@ async function main() {
       return reply.send(result);
     } catch (err: any) {
       return reply.status(500).send({ error: err.message });
+    } finally {
+      if (useVnc) stopVnc(body.runId);
     }
   });
 

@@ -80,6 +80,7 @@ export function initSchema() {
 
   try { db.exec("ALTER TABLE users ADD COLUMN disabled INTEGER NOT NULL DEFAULT 0"); } catch {}
   try { db.exec("ALTER TABLE users ADD COLUMN last_login INTEGER"); } catch {}
+  try { db.exec("ALTER TABLE runs ADD COLUMN vnc_port INTEGER"); } catch {}
 
   // Test shares table
   db.exec(`

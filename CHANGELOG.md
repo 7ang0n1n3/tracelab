@@ -6,6 +6,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [0.1.5] — 2026-03-20
+
+### Fixed
+- Headed mode (headless OFF) now shows a live browser panel in Docker — the runner starts VNC (x11vnc + websockify) and passes `DISPLAY :99` to the browser before test execution; the run detail page shows an embedded noVNC iframe while the run is active; VNC is stopped cleanly when the run finishes; `vnc_port` is stored in the runs table at start and read by the frontend via the polling interval
+
+---
+
 ## [0.1.4] — 2026-03-19
 
 ### Fixed

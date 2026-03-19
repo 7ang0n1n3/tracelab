@@ -326,6 +326,21 @@ export default function RunDetailPage() {
         </div>
       )}
 
+      {/* Live browser panel (headed mode via VNC) */}
+      {isActive && run.vnc_port && (
+        <div className="bg-bg-surface border border-border rounded-lg overflow-hidden">
+          <div className="px-4 py-2.5 border-b border-border text-xs text-muted flex items-center gap-2">
+            <span className="inline-block w-2 h-2 rounded-full bg-blue-400 animate-pulse" />
+            Live Browser View
+          </div>
+          <iframe
+            src={`http://${typeof window !== "undefined" ? window.location.hostname : "localhost"}:${run.vnc_port}/vnc.html?autoconnect=1&resize=scale&show_dot=true`}
+            className="w-full border-0"
+            style={{ height: "480px" }}
+          />
+        </div>
+      )}
+
       {/* Running overlay */}
       {isActive && <RunningOverlay elapsed={elapsed} />}
 

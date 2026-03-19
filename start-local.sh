@@ -45,6 +45,7 @@ export DATABASE_PATH="$SCRIPT_DIR/data/db/tracelab.db"
 export ARTIFACTS_PATH="$SCRIPT_DIR/data/artifacts"
 export AUTH_STATE_PATH="$SCRIPT_DIR/data/auth"
 export RUNNER_URL="http://localhost:5000"
+export RUNNER_NOVNC_PORT="${NOVNC_PORT:-6080}"
 export PORT_BACKEND="${BACKEND_PORT:-4000}"
 export PORT_RUNNER="${RUNNER_PORT:-5000}"
 

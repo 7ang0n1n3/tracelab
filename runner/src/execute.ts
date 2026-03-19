@@ -54,6 +54,7 @@ export async function executeScript(opts: ExecuteOptions): Promise<ExecuteResult
     browser = await engine.launch({
       headless: config.headless,
       slowMo: config.slowMo,
+      ...(config.headless ? {} : { env: { ...process.env, DISPLAY: process.env.DISPLAY ?? ":99" } }),
     });
 
     const contextOptions: Parameters<Browser["newContext"]>[0] = {

@@ -5,6 +5,7 @@ import { Test, RunConfig, RunResult, AuthState } from "../types";
 
 const RUNNER_URL = process.env.RUNNER_URL || "http://runner:5000";
 const ARTIFACTS_PATH = process.env.ARTIFACTS_PATH || "./data/artifacts";
+const RUNNER_NOVNC_PORT = parseInt(process.env.RUNNER_NOVNC_PORT || "6080", 10);
 
 function getSettings(): RunConfig & { defaultBrowser: "chromium" | "firefox" | "webkit" } {
   const rows = db.prepare("SELECT key, value FROM settings").all() as { key: string; value: string }[];
@@ -46,8 +47,12 @@ export async function dispatchRun(runId: string, test: Test) {
     }
   }
 
-  // Mark run as running
-  db.prepare("UPDATE runs SET status = 'running', started_at = ? WHERE id = ?").run(Date.now(), runId);
+  // Mark run as running (store vnc_port when headed so the UI can show the live browser)
+  if (!config.headless) {
+    db.prepare("UPDATE runs SET status = 'running', started_at = ?, vnc_port = ? WHERE id = ?").run(Date.now(), RUNNER_NOVNC_PORT, runId);
+  } else {
+    db.prepare("UPDATE runs SET status = 'running', started_at = ? WHERE id = ?").run(Date.now(), runId);
+  }
 
   try {
     const response = await axios.post<RunResult>(`${RUNNER_URL}/execute`, {
