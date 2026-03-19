@@ -6,6 +6,21 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [0.1.2] — 2026-03-19
+
+### Added
+- Last login timestamp on user records — displayed in the admin Users table as a relative time ("2 hours ago" / "Never")
+- Account disable/enable toggle in the admin Users table — disabled users are blocked at login and any active session is immediately invalidated
+- Disabled accounts shown with strikethrough username and an orange `disabled` badge
+
+### Fixed
+- Shared-test runs returned "Run not found" for the shared user — run access checks and the run list query now include tests shared via `test_shares`
+- Screenshots were empty for shared-test runs — artifact access checks now also consult `test_shares`
+- All metadata fields (inputs, selects, textarea, checkbox) on the test detail page are now locked to read-only for users with read-only share access
+- Primary admin account (earliest-created admin) cannot be disabled — enforced in both the backend API and the UI (button greyed out with tooltip)
+
+---
+
 ## [0.1.1] — 2026-03-19
 
 ### Added
