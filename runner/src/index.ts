@@ -8,6 +8,8 @@ import os from "os";
 import { v4 as uuidv4 } from "uuid";
 import { executeScript } from "./execute";
 
+const NOVNC_PORT = parseInt(process.env.NOVNC_PORT || "6080", 10);
+
 const ARTIFACTS_PATH = process.env.ARTIFACTS_PATH || "./data/artifacts";
 
 const app = Fastify({ logger: true });
@@ -17,6 +19,42 @@ const recordingSessions: Map<string, { close: () => Promise<void> }> = new Map()
 
 // Track active codegen sessions
 const codegenSessions: Map<string, { proc: ChildProcess; outputFile: string }> = new Map();
+
+// Track VNC processes per codegen session
+const vncProcesses: Map<string, { x11vnc: ChildProcess; websockify: ChildProcess }> = new Map();
+
+function startVnc(sessionId: string): Promise<void> {
+  return new Promise((resolve) => {
+    const x11vnc = spawn("x11vnc", [
+      "-display", ":99",
+      "-nopw", "-forever", "-shared",
+      "-rfbport", "5900",
+      "-quiet", "-noipv6",
+    ], { stdio: "ignore" });
+
+    // Give x11vnc a moment to bind before starting websockify
+    setTimeout(() => {
+      const websockify = spawn("websockify", [
+        "--web", "/usr/share/novnc/",
+        `0.0.0.0:${NOVNC_PORT}`,
+        "localhost:5900",
+      ], { stdio: "ignore" });
+
+      vncProcesses.set(sessionId, { x11vnc, websockify });
+      // Give websockify a moment to be ready before the client connects
+      setTimeout(resolve, 800);
+    }, 600);
+  });
+}
+
+function stopVnc(sessionId: string) {
+  const procs = vncProcesses.get(sessionId);
+  if (procs) {
+    procs.websockify.kill("SIGTERM");
+    procs.x11vnc.kill("SIGTERM");
+    vncProcesses.delete(sessionId);
+  }
+}
 
 async function main() {
   const BACKEND_URL = process.env.BACKEND_URL || "http://backend:4000";
@@ -110,21 +148,30 @@ async function main() {
     const sessionId = body.sessionId ?? uuidv4();
     const outputFile = path.join(os.tmpdir(), `tracelab-codegen-${sessionId}.js`);
 
+    // Start VNC so the user can view the browser in-app
+    await startVnc(sessionId);
+
     const args = ["playwright", "codegen", "--output", outputFile];
     if (body.url) args.push(body.url);
 
-    // npx resolves to the local playwright binary
     const proc = spawn("npx", args, {
       env: { ...process.env, DISPLAY: process.env.DISPLAY ?? ":99" },
       detached: false,
       stdio: "ignore",
     });
 
-    proc.on("exit", () => codegenSessions.delete(sessionId));
+    proc.on("exit", () => {
+      codegenSessions.delete(sessionId);
+      stopVnc(sessionId);
+    });
 
     codegenSessions.set(sessionId, { proc, outputFile });
 
-    return reply.send({ sessionId, message: "Codegen browser opened. Interact, then click Finish." });
+    return reply.send({
+      sessionId,
+      vncPort: NOVNC_PORT,
+      message: "Codegen browser opened. Interact in the browser panel, then click Finish.",
+    });
   });
 
   app.post("/codegen/finish", async (req, reply) => {
@@ -134,8 +181,9 @@ async function main() {
       return reply.status(404).send({ error: "No active codegen session" });
     }
 
-    // Kill the process — codegen writes output on exit
+    // Kill the codegen browser and VNC
     session.proc.kill("SIGTERM");
+    stopVnc(body.sessionId);
 
     // Give the process a moment to flush the file
     await new Promise((r) => setTimeout(r, 800));

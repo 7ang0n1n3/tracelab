@@ -36,12 +36,14 @@ services:
       dockerfile: Dockerfile
     ports:
       - "${RUNNER_PORT:-5000}:5000"
+      - "${NOVNC_PORT:-6080}:6080"
     environment:
       - ARTIFACTS_PATH=/data/artifacts
       - AUTH_STATE_PATH=/data/auth
       - TESTS_PATH=/data/tests
       - PORT=5000
       - DISPLAY=:99
+      - NOVNC_PORT=6080
     volumes:
       - ./data:/data
     shm_size: "2gb"

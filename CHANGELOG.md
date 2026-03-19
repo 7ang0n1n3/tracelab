@@ -6,6 +6,21 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [0.1.0] — 2026-03-19
+
+### Added
+- In-browser Playwright codegen recorder — recording now happens inside a full-screen modal within the TraceLab UI via an embedded noVNC browser panel; no desktop window or X11 passthrough required
+- `x11vnc` + `websockify` + noVNC installed in the runner image; VNC server starts on-demand when a codegen session begins and shuts down when it ends
+- Port 6080 exposed on the runner container for noVNC WebSocket traffic
+
+### Changed
+- Runner Dockerfile uses `DEBIAN_FRONTEND=noninteractive` to prevent apt interactive prompts during image builds
+
+### Removed
+- X11 host display passthrough and xauth cookie workarounds — no longer needed with the in-browser VNC approach
+
+---
+
 ## [0.0.5] — 2026-03-19
 
 ### Added

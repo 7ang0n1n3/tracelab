@@ -56,7 +56,7 @@ export const api = {
   // Codegen recorder
   codegen: {
     start: (data: { url?: string; sessionId?: string }) =>
-      apiFetch<{ sessionId: string; message: string }>("/codegen/start", { method: "POST", body: JSON.stringify(data) }),
+      apiFetch<{ sessionId: string; vncPort: number; message: string }>("/codegen/start", { method: "POST", body: JSON.stringify(data) }),
     finish: (sessionId: string) =>
       apiFetch<{ script: string; raw: string }>("/codegen/finish", { method: "POST", body: JSON.stringify({ sessionId }) }),
   },

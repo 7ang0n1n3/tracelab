@@ -2,8 +2,11 @@ FROM mcr.microsoft.com/playwright:v1.42.1-jammy
 
 WORKDIR /app
 
-# Install Xvfb for headless display support (needed for headed mode)
-RUN apt-get update && apt-get install -y xvfb && rm -rf /var/lib/apt/lists/*
+# Install Xvfb, x11vnc, and noVNC (websockify) for in-browser codegen recording
+RUN DEBIAN_FRONTEND=noninteractive apt-get update && \
+    DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+      xvfb x11vnc novnc python3-websockify && \
+    rm -rf /var/lib/apt/lists/*
 
 COPY package.json .
 RUN npm install
