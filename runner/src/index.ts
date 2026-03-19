@@ -107,7 +107,12 @@ async function main() {
     fs.mkdirSync(authDir, { recursive: true });
 
     try {
-      const browser = await chromium.launch({ headless: false });
+      await startVnc(body.authStateId);
+
+      const browser = await chromium.launch({
+        headless: false,
+        env: { ...process.env, DISPLAY: process.env.DISPLAY ?? ":99" },
+      });
       const context = await browser.newContext();
       const page = await context.newPage();
 
@@ -119,15 +124,18 @@ async function main() {
         close: async () => {
           await context.storageState({ path: body.outputPath });
           await browser.close();
+          stopVnc(body.authStateId);
           recordingSessions.delete(body.authStateId);
         },
       });
 
       return reply.send({
         sessionId: body.authStateId,
-        message: "Browser opened. Click Finish Recording when done logging in.",
+        vncPort: NOVNC_PORT,
+        message: "Browser opened via VNC. Log in, then click Finish Recording.",
       });
     } catch (err: any) {
+      stopVnc(body.authStateId);
       return reply.status(500).send({ error: err.message });
     }
   });

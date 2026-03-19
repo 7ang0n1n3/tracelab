@@ -13,6 +13,7 @@ export default function AuthPage() {
   const [form, setForm] = useState({ name: "", app_name: "", base_url: "" });
   // activeRecording holds the id of the auth state currently being recorded
   const [activeRecording, setActiveRecording] = useState<string | null>(null);
+  const [vncPort, setVncPort] = useState<number | null>(null);
   const [finishing, setFinishing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -43,8 +44,9 @@ export default function AuthPage() {
   async function handleRecord(id: string) {
     setError(null);
     try {
-      await api.authStates.record(id);
+      const res = await api.authStates.record(id);
       setActiveRecording(id);
+      if (res?.vncPort) setVncPort(res.vncPort);
     } catch (e: any) {
       setError(e.message);
     }
@@ -57,6 +59,7 @@ export default function AuthPage() {
     try {
       await api.authStates.finishRecord(activeRecording);
       setActiveRecording(null);
+      setVncPort(null);
       load();
     } catch (e: any) {
       setError(e.message);
@@ -90,8 +93,28 @@ export default function AuthPage() {
         </div>
       )}
 
-      {/* Active recording banner */}
-      {activeRecording && (
+      {/* Full-screen VNC recording modal */}
+      {activeRecording && vncPort && (
+        <div className="fixed inset-0 z-50 flex flex-col bg-zinc-950">
+          <div className="flex items-center justify-between px-4 py-2 border-b border-border bg-bg-surface shrink-0">
+            <div className="flex items-center gap-2 text-sm text-slate-300">
+              <span className="inline-block w-2 h-2 rounded-full bg-blue-400 animate-pulse" />
+              Recording auth state — log in, then click Finish
+            </div>
+            <Button variant="primary" size="sm" onClick={handleFinishRecord} disabled={finishing}>
+              <CheckCircle size={13} />
+              {finishing ? "Saving..." : "Finish Recording"}
+            </Button>
+          </div>
+          <iframe
+            src={`http://${typeof window !== "undefined" ? window.location.hostname : "localhost"}:${vncPort}/vnc.html?autoconnect=1&resize=scale&show_dot=true`}
+            className="flex-1 w-full border-0"
+          />
+        </div>
+      )}
+
+      {/* Fallback banner when VNC port not available */}
+      {activeRecording && !vncPort && (
         <div className="bg-blue-900/30 border border-blue-600/40 rounded-lg px-5 py-4 flex items-center justify-between">
           <div>
             <div className="text-sm font-medium text-blue-300 flex items-center gap-2">
@@ -99,7 +122,7 @@ export default function AuthPage() {
               Recording in progress
             </div>
             <div className="text-xs text-blue-400/70 mt-1">
-              A browser window is open on the runner. Log in to your app, then click Finish.
+              Browser is open on the runner. Log in, then click Finish.
             </div>
           </div>
           <Button variant="primary" size="sm" onClick={handleFinishRecord} disabled={finishing}>
