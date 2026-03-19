@@ -3,9 +3,10 @@
 import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
 import { Button } from "@/components/ui/Button";
-import { Plus, Trash2, Pencil, X, Check } from "lucide-react";
+import { Plus, Trash2, Pencil, X, Check, Ban, CircleCheck } from "lucide-react";
+import { formatDistanceToNow } from "date-fns";
 
-type User = { id: string; username: string; role: string; created_at: number };
+type User = { id: string; username: string; role: string; disabled: number; last_login: number | null; created_at: number };
 
 const ROLES = ["admin", "dev", "qa"] as const;
 
@@ -69,6 +70,17 @@ export default function UsersPage() {
       if (editForm.password) payload.password = editForm.password;
       await api.users.update(id, payload);
       setEditId(null);
+      load();
+    } catch (err: any) {
+      setError(err.message);
+    }
+  }
+
+  async function handleToggleDisabled(user: User) {
+    const action = user.disabled ? "enable" : "disable";
+    if (!confirm(`${action.charAt(0).toUpperCase() + action.slice(1)} account "${user.username}"?`)) return;
+    try {
+      await api.users.update(user.id, { disabled: !user.disabled });
       load();
     } catch (err: any) {
       setError(err.message);
@@ -154,8 +166,9 @@ export default function UsersPage() {
               <tr className="border-b border-border text-left">
                 <th className="px-4 py-3 text-xs text-muted font-medium">Username</th>
                 <th className="px-4 py-3 text-xs text-muted font-medium">Role</th>
+                <th className="px-4 py-3 text-xs text-muted font-medium">Last Login</th>
                 <th className="px-4 py-3 text-xs text-muted font-medium">Created</th>
-                <th className="px-4 py-3 text-xs text-muted font-medium w-24"></th>
+                <th className="px-4 py-3 text-xs text-muted font-medium w-28"></th>
               </tr>
             </thead>
             <tbody>
@@ -181,6 +194,7 @@ export default function UsersPage() {
                           {ROLES.map((r) => <option key={r} value={r}>{r}</option>)}
                         </select>
                       </td>
+                      <td className="px-4 py-2" />
                       <td className="px-4 py-2">
                         <input
                           type="password"
@@ -199,12 +213,25 @@ export default function UsersPage() {
                     </>
                   ) : (
                     <>
-                      <td className="px-4 py-3 text-slate-200 font-mono">{user.username}</td>
+                      <td className="px-4 py-3">
+                        <span className={`font-mono ${user.disabled ? "text-muted line-through" : "text-slate-200"}`}>{user.username}</span>
+                        {!!user.disabled && <span className="ml-2 text-xs text-orange-400 border border-orange-700/40 bg-orange-900/20 rounded px-1.5 py-0.5">disabled</span>}
+                      </td>
                       <td className="px-4 py-3"><RoleBadge role={user.role} /></td>
+                      <td className="px-4 py-3 text-muted text-xs">
+                        {user.last_login ? formatDistanceToNow(user.last_login, { addSuffix: true }) : "Never"}
+                      </td>
                       <td className="px-4 py-3 text-muted text-xs">{new Date(user.created_at).toLocaleDateString()}</td>
                       <td className="px-4 py-3">
                         <div className="flex gap-1 justify-end">
                           <button onClick={() => startEdit(user)} className="p-1.5 rounded text-muted hover:text-slate-200 hover:bg-bg-elevated transition-colors"><Pencil size={13} /></button>
+                          <button
+                            onClick={() => handleToggleDisabled(user)}
+                            title={user.disabled ? "Enable account" : "Disable account"}
+                            className={`p-1.5 rounded transition-colors ${user.disabled ? "text-green-500 hover:bg-green-900/20" : "text-muted hover:text-orange-400 hover:bg-orange-900/20"}`}
+                          >
+                            {user.disabled ? <CircleCheck size={13} /> : <Ban size={13} />}
+                          </button>
                           <button onClick={() => handleDelete(user.id, user.username)} className="p-1.5 rounded text-muted hover:text-red-400 hover:bg-red-900/20 transition-colors"><Trash2 size={13} /></button>
                         </div>
                       </td>
@@ -213,7 +240,7 @@ export default function UsersPage() {
                 </tr>
               ))}
               {users.length === 0 && (
-                <tr><td colSpan={4} className="px-4 py-6 text-center text-muted text-sm">No users found.</td></tr>
+                <tr><td colSpan={5} className="px-4 py-6 text-center text-muted text-sm">No users found.</td></tr>
               )}
             </tbody>
           </table>

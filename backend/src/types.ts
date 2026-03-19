@@ -3,6 +3,8 @@ export interface User {
   username: string;
   password_hash: string;
   role: "admin" | "dev" | "qa";
+  disabled: number; // 0 = active, 1 = disabled
+  last_login: number | null;
   created_at: number;
   updated_at: number;
 }

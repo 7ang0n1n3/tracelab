@@ -81,7 +81,7 @@ export const api = {
     list: () => apiFetch<any[]>("/users"),
     create: (data: { username: string; password: string; role: string }) =>
       apiFetch<any>("/users", { method: "POST", body: JSON.stringify(data) }),
-    update: (id: string, data: { username?: string; password?: string; role?: string }) =>
+    update: (id: string, data: { username?: string; password?: string; role?: string; disabled?: boolean }) =>
       apiFetch<any>(`/users/${id}`, { method: "PUT", body: JSON.stringify(data) }),
     delete: (id: string) => apiFetch<void>(`/users/${id}`, { method: "DELETE" }),
   },

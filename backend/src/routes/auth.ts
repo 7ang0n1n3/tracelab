@@ -52,7 +52,13 @@ export async function authRoutes(app: FastifyInstance) {
       return reply.status(401).send({ error: "Invalid credentials" });
     }
 
+    if (user.disabled) {
+      app.log.warn({ ip, username, event: "login_disabled" }, "Disabled account login attempt");
+      return reply.status(403).send({ error: "Account is disabled" });
+    }
+
     clearFailures(ip);
+    db.prepare("UPDATE users SET last_login = ? WHERE id = ?").run(Date.now(), user.id);
     const token = createSession(user.id); // also invalidates any prior sessions for this user
     app.log.info({ ip, username: user.username, role: user.role, event: "login_success" }, "User logged in");
     reply.header("Set-Cookie", `tracelab_session=${token}; ${COOKIE_OPTS}`);

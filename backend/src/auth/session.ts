@@ -52,10 +52,11 @@ export function getSessionUser(token: string): Omit<User, "password_hash"> | nul
   if (!session) return null;
 
   const user = db.prepare(
-    "SELECT id, username, role, created_at, updated_at FROM users WHERE id = ?"
+    "SELECT id, username, role, disabled, last_login, created_at, updated_at FROM users WHERE id = ?"
   ).get(session.user_id) as Omit<User, "password_hash"> | undefined;
 
-  return user ?? null;
+  if (!user || user.disabled) return null;
+  return user;
 }
 
 export function deleteSession(token: string): void {

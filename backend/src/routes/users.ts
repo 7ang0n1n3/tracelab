@@ -17,7 +17,7 @@ export async function usersRoutes(app: FastifyInstance) {
   // List all users (admin only)
   app.get("/api/users", { preHandler: requireAdmin }, async () => {
     return db
-      .prepare("SELECT id, username, role, created_at, updated_at FROM users ORDER BY created_at ASC")
+      .prepare("SELECT id, username, role, disabled, last_login, created_at, updated_at FROM users ORDER BY created_at ASC")
       .all() as Omit<User, "password_hash">[];
   });
 
@@ -46,21 +46,27 @@ export async function usersRoutes(app: FastifyInstance) {
     ).run(id, username, hashPassword(password), userRole, now, now);
 
     return reply.status(201).send(
-      db.prepare("SELECT id, username, role, created_at, updated_at FROM users WHERE id = ?").get(id)
+      db.prepare("SELECT id, username, role, disabled, last_login, created_at, updated_at FROM users WHERE id = ?").get(id)
     );
   });
 
   // Update user (admin only)
   app.put("/api/users/:id", { preHandler: requireAdmin }, async (req, reply) => {
     const { id } = req.params as { id: string };
-    const { username, password, role } = req.body as {
+    const { username, password, role, disabled } = req.body as {
       username?: string;
       password?: string;
       role?: string;
+      disabled?: boolean;
     };
 
     const user = db.prepare("SELECT * FROM users WHERE id = ?").get(id) as User | undefined;
     if (!user) return reply.status(404).send({ error: "Not found" });
+
+    // Cannot disable your own account
+    if (disabled !== undefined && id === req.user!.id) {
+      return reply.status(400).send({ error: "Cannot disable your own account" });
+    }
 
     const validRoles = ["admin", "dev", "qa"];
     const updates: string[] = [];
@@ -80,13 +86,19 @@ export async function usersRoutes(app: FastifyInstance) {
       updates.push("role = ?");
       params.push(role);
     }
+    if (disabled !== undefined) {
+      updates.push("disabled = ?");
+      params.push(disabled ? 1 : 0);
+      // Kill all active sessions when disabling
+      if (disabled) db.prepare("DELETE FROM sessions WHERE user_id = ?").run(id);
+    }
     if (!updates.length) return reply.status(400).send({ error: "Nothing to update" });
 
     updates.push("updated_at = ?");
     params.push(Date.now(), id);
 
     db.prepare(`UPDATE users SET ${updates.join(", ")} WHERE id = ?`).run(...params);
-    return db.prepare("SELECT id, username, role, created_at, updated_at FROM users WHERE id = ?").get(id);
+    return db.prepare("SELECT id, username, role, disabled, last_login, created_at, updated_at FROM users WHERE id = ?").get(id);
   });
 
   // Delete user (admin only, cannot delete self)
