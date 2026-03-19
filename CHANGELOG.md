@@ -6,6 +6,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [0.1.4] — 2026-03-19
+
+### Fixed
+- Replaced all native `confirm()` browser dialogs with a custom in-app confirmation modal — eliminates the browser's "Don't allow prompts" checkbox that could permanently suppress delete confirmations; affects run delete, test delete, test detail delete, auth state delete, user delete, and user disable/enable
+
+---
+
 ## [0.1.3] — 2026-03-19
 
 ### Fixed
