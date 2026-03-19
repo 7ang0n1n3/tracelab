@@ -68,6 +68,16 @@ export async function usersRoutes(app: FastifyInstance) {
       return reply.status(400).send({ error: "Cannot disable your own account" });
     }
 
+    // Cannot disable the first (oldest) admin account
+    if (disabled) {
+      const firstAdmin = db.prepare(
+        "SELECT id FROM users WHERE role = 'admin' ORDER BY created_at ASC LIMIT 1"
+      ).get() as { id: string } | undefined;
+      if (firstAdmin?.id === id) {
+        return reply.status(400).send({ error: "Cannot disable the primary admin account" });
+      }
+    }
+
     const validRoles = ["admin", "dev", "qa"];
     const updates: string[] = [];
     const params: (string | number)[] = [];

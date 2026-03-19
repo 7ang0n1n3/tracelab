@@ -25,6 +25,9 @@ function RoleBadge({ role }: { role: string }) {
 
 export default function UsersPage() {
   const [users, setUsers] = useState<User[]>([]);
+  const firstAdminId = users
+    .filter((u) => u.role === "admin")
+    .sort((a, b) => a.created_at - b.created_at)[0]?.id ?? null;
   const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
@@ -227,8 +230,9 @@ export default function UsersPage() {
                           <button onClick={() => startEdit(user)} className="p-1.5 rounded text-muted hover:text-slate-200 hover:bg-bg-elevated transition-colors"><Pencil size={13} /></button>
                           <button
                             onClick={() => handleToggleDisabled(user)}
-                            title={user.disabled ? "Enable account" : "Disable account"}
-                            className={`p-1.5 rounded transition-colors ${user.disabled ? "text-green-500 hover:bg-green-900/20" : "text-muted hover:text-orange-400 hover:bg-orange-900/20"}`}
+                            title={user.id === firstAdminId ? "Primary admin cannot be disabled" : user.disabled ? "Enable account" : "Disable account"}
+                            disabled={user.id === firstAdminId}
+                            className={`p-1.5 rounded transition-colors ${user.id === firstAdminId ? "opacity-30 cursor-not-allowed text-muted" : user.disabled ? "text-green-500 hover:bg-green-900/20" : "text-muted hover:text-orange-400 hover:bg-orange-900/20"}`}
                           >
                             {user.disabled ? <CircleCheck size={13} /> : <Ban size={13} />}
                           </button>
