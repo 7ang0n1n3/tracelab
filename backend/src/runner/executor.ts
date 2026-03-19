@@ -50,11 +50,18 @@ export async function dispatchRun(runId: string, test: Test) {
     }
   }
 
-  // Mark run as running (store vnc_port when headed so the UI can show the live browser)
+  // Mark run as running (vnc_port is set later, only after VNC is confirmed ready)
+  db.prepare("UPDATE runs SET status = 'running', started_at = ? WHERE id = ?").run(Date.now(), runId);
+
+  // For headed runs: start VNC on the runner first, wait for it to be ready,
+  // then write vnc_port to the DB so the frontend only shows the iframe once connectable
   if (!config.headless) {
-    db.prepare("UPDATE runs SET status = 'running', started_at = ?, vnc_port = ? WHERE id = ?").run(Date.now(), RUNNER_NOVNC_PORT, runId);
-  } else {
-    db.prepare("UPDATE runs SET status = 'running', started_at = ? WHERE id = ?").run(Date.now(), runId);
+    try {
+      await axios.post(`${RUNNER_URL}/execute/vnc-start`, { runId });
+      db.prepare("UPDATE runs SET vnc_port = ? WHERE id = ?").run(RUNNER_NOVNC_PORT, runId);
+    } catch {
+      // VNC failed to start — continue without it (test still runs headlessly via DISPLAY)
+    }
   }
 
   try {

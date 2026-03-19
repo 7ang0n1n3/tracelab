@@ -81,12 +81,8 @@ async function main() {
       };
     };
 
+    // VNC is started separately via /execute/vnc-start before this is called
     const useVnc = !body.config.headless;
-    if (useVnc) {
-      await startVnc(body.runId);
-      // Give the noVNC client time to connect before the browser launches
-      await new Promise((r) => setTimeout(r, 2000));
-    }
     try {
       const result = await executeScript({
         runId: body.runId,
@@ -100,6 +96,17 @@ async function main() {
       return reply.status(500).send({ error: err.message });
     } finally {
       if (useVnc) stopVnc(body.runId);
+    }
+  });
+
+  // ── Start VNC for a headed test run (called before /execute) ─────────────
+  app.post("/execute/vnc-start", async (req, reply) => {
+    const { runId } = req.body as { runId: string };
+    try {
+      await startVnc(runId);
+      return reply.send({ vncPort: NOVNC_PORT });
+    } catch (err: any) {
+      return reply.status(500).send({ error: err.message });
     }
   });
 
