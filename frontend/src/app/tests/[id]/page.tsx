@@ -169,33 +169,33 @@ export default function TestDetailPage() {
         <div className="grid grid-cols-2 gap-4">
           <div>
             <label className="block text-xs text-muted mb-1">Test Name</label>
-            <input value={name} onChange={(e) => { setName(e.target.value); markDirty(); }}
-              className="w-full bg-bg-elevated border border-border rounded px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-accent" />
+            <input value={name} readOnly={isReadOnly} onChange={(e) => { setName(e.target.value); markDirty(); }}
+              className={`w-full bg-bg-elevated border border-border rounded px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-accent${isReadOnly ? " opacity-60 cursor-default" : ""}`} />
           </div>
           <div>
             <label className="block text-xs text-muted mb-1">App / System</label>
-            <input value={appName} onChange={(e) => { setAppName(e.target.value); markDirty(); }}
-              className="w-full bg-bg-elevated border border-border rounded px-3 py-2 text-sm text-slate-200 placeholder:text-muted focus:outline-none focus:border-accent" />
+            <input value={appName} readOnly={isReadOnly} onChange={(e) => { setAppName(e.target.value); markDirty(); }}
+              className={`w-full bg-bg-elevated border border-border rounded px-3 py-2 text-sm text-slate-200 placeholder:text-muted focus:outline-none focus:border-accent${isReadOnly ? " opacity-60 cursor-default" : ""}`} />
           </div>
         </div>
         <div className="grid grid-cols-2 gap-4">
           <div>
             <label className="block text-xs text-muted mb-1">Base URL</label>
-            <input value={baseUrl} onChange={(e) => { setBaseUrl(e.target.value); markDirty(); }}
-              className="w-full bg-bg-elevated border border-border rounded px-3 py-2 text-sm text-slate-200 placeholder:text-muted focus:outline-none focus:border-accent" />
+            <input value={baseUrl} readOnly={isReadOnly} onChange={(e) => { setBaseUrl(e.target.value); markDirty(); }}
+              className={`w-full bg-bg-elevated border border-border rounded px-3 py-2 text-sm text-slate-200 placeholder:text-muted focus:outline-none focus:border-accent${isReadOnly ? " opacity-60 cursor-default" : ""}`} />
           </div>
           <div>
             <label className="block text-xs text-muted mb-1">Tags <span className="text-muted/60">(comma-separated)</span></label>
-            <input value={tags} onChange={(e) => { setTags(e.target.value); markDirty(); }}
+            <input value={tags} readOnly={isReadOnly} onChange={(e) => { setTags(e.target.value); markDirty(); }}
               placeholder="smoke, login, auth"
-              className="w-full bg-bg-elevated border border-border rounded px-3 py-2 text-sm text-slate-200 placeholder:text-muted focus:outline-none focus:border-accent" />
+              className={`w-full bg-bg-elevated border border-border rounded px-3 py-2 text-sm text-slate-200 placeholder:text-muted focus:outline-none focus:border-accent${isReadOnly ? " opacity-60 cursor-default" : ""}`} />
           </div>
         </div>
         <div className="grid grid-cols-2 gap-4">
           <div>
             <label className="block text-xs text-muted mb-1">Browser <span className="text-muted/60">(overrides system default)</span></label>
-            <select value={browser} onChange={(e) => { setBrowser(e.target.value); markDirty(); }}
-              className="w-full bg-bg-elevated border border-border rounded px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-accent">
+            <select value={browser} disabled={isReadOnly} onChange={(e) => { setBrowser(e.target.value); markDirty(); }}
+              className={`w-full bg-bg-elevated border border-border rounded px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-accent${isReadOnly ? " opacity-60 cursor-default" : ""}`}>
               <option value="">System default</option>
               <option value="chromium">Chromium</option>
               <option value="firefox">Firefox</option>
@@ -204,8 +204,8 @@ export default function TestDetailPage() {
           </div>
           <div>
             <label className="block text-xs text-muted mb-1">Record Video <span className="text-muted/60">(overrides system default)</span></label>
-            <select value={captureVideo} onChange={(e) => { setCaptureVideo(e.target.value); markDirty(); }}
-              className="w-full bg-bg-elevated border border-border rounded px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-accent">
+            <select value={captureVideo} disabled={isReadOnly} onChange={(e) => { setCaptureVideo(e.target.value); markDirty(); }}
+              className={`w-full bg-bg-elevated border border-border rounded px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-accent${isReadOnly ? " opacity-60 cursor-default" : ""}`}>
               <option value="">System default</option>
               <option value="true">On</option>
               <option value="false">Off</option>
@@ -214,20 +214,20 @@ export default function TestDetailPage() {
         </div>
         <div>
           <label className="block text-xs text-muted mb-1">Description</label>
-          <textarea value={description} onChange={(e) => { setDescription(e.target.value); markDirty(); }} rows={2}
-            className="w-full bg-bg-elevated border border-border rounded px-3 py-2 text-sm text-slate-200 placeholder:text-muted focus:outline-none focus:border-accent resize-none" />
+          <textarea value={description} readOnly={isReadOnly} onChange={(e) => { setDescription(e.target.value); markDirty(); }} rows={2}
+            className={`w-full bg-bg-elevated border border-border rounded px-3 py-2 text-sm text-slate-200 placeholder:text-muted focus:outline-none focus:border-accent resize-none${isReadOnly ? " opacity-60 cursor-default" : ""}`} />
         </div>
 
         {/* Auth state */}
         <div className="flex items-center gap-4">
-          <label className="flex items-center gap-2 text-sm text-slate-300 cursor-pointer">
-            <input type="checkbox" checked={useAuth} onChange={(e) => { setUseAuth(e.target.checked); markDirty(); }}
+          <label className={`flex items-center gap-2 text-sm text-slate-300${isReadOnly ? " opacity-60" : " cursor-pointer"}`}>
+            <input type="checkbox" checked={useAuth} disabled={isReadOnly} onChange={(e) => { setUseAuth(e.target.checked); markDirty(); }}
               className="accent-accent" />
             Use Auth State
           </label>
           {useAuth && (
-            <select value={authStateId} onChange={(e) => { setAuthStateId(e.target.value); markDirty(); }}
-              className="bg-bg-elevated border border-border rounded px-3 py-1.5 text-sm text-slate-200 focus:outline-none focus:border-accent">
+            <select value={authStateId} disabled={isReadOnly} onChange={(e) => { setAuthStateId(e.target.value); markDirty(); }}
+              className={`bg-bg-elevated border border-border rounded px-3 py-1.5 text-sm text-slate-200 focus:outline-none focus:border-accent${isReadOnly ? " opacity-60 cursor-default" : ""}`}>
               <option value="">— None —</option>
               {authStates.map((a: any) => (
                 <option key={a.id} value={a.id}>{a.name}{a.app_name ? ` (${a.app_name})` : ""}</option>
