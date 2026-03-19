@@ -78,6 +78,19 @@ export function initSchema() {
   try { db.exec("ALTER TABLE tests ADD COLUMN browser TEXT"); } catch {}
   try { db.exec("ALTER TABLE tests ADD COLUMN capture_video INTEGER"); } catch {}
 
+  // Test shares table
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS test_shares (
+      id TEXT PRIMARY KEY,
+      test_id TEXT NOT NULL REFERENCES tests(id) ON DELETE CASCADE,
+      grantee_type TEXT NOT NULL,
+      grantee_id TEXT NOT NULL,
+      permission TEXT NOT NULL,
+      created_at INTEGER NOT NULL,
+      UNIQUE(test_id, grantee_type, grantee_id)
+    );
+  `);
+
   // Default settings
   const defaults: Record<string, string> = {
     headless: "true",

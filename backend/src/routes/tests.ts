@@ -7,6 +7,24 @@ import { requireAuth } from "../auth/middleware";
 
 const VALID_BROWSERS = ["chromium", "firefox", "webkit"];
 
+type AccessLevel = "admin" | "owner" | "write" | "read";
+
+function getTestAccess(test: Test, userId: string, userRole: string): AccessLevel | null {
+  if (userRole === "admin") return "admin";
+  if (!test.user_id || test.user_id === userId) return "owner";
+  const share = db.prepare(`
+    SELECT permission FROM test_shares
+    WHERE test_id = ? AND (
+      (grantee_type = 'user' AND grantee_id = ?) OR
+      (grantee_type = 'role' AND grantee_id = ?)
+    )
+    ORDER BY CASE permission WHEN 'write' THEN 0 ELSE 1 END
+    LIMIT 1
+  `).get(test.id, userId, userRole) as { permission: string } | undefined;
+  if (share) return share.permission as "read" | "write";
+  return null;
+}
+
 export async function testsRoutes(app: FastifyInstance) {
   // List tests
   app.get("/api/tests", { preHandler: requireAuth }, async (req) => {
@@ -18,8 +36,13 @@ export async function testsRoutes(app: FastifyInstance) {
     const params: (string | number)[] = [];
 
     if (!isAdmin) {
-      conditions.push("(user_id = ? OR user_id IS NULL)");
-      params.push(req.user!.id);
+      conditions.push(`(user_id = ? OR user_id IS NULL OR EXISTS (
+        SELECT 1 FROM test_shares ts WHERE ts.test_id = tests.id AND (
+          (ts.grantee_type = 'user' AND ts.grantee_id = ?) OR
+          (ts.grantee_type = 'role' AND ts.grantee_id = ?)
+        )
+      ))`);
+      params.push(req.user!.id, req.user!.id, req.user!.role);
     }
     if (appFilter) {
       conditions.push("app_name = ?");
@@ -52,10 +75,9 @@ export async function testsRoutes(app: FastifyInstance) {
     const { id } = req.params as { id: string };
     const test = db.prepare("SELECT * FROM tests WHERE id = ?").get(id) as Test | undefined;
     if (!test) return reply.status(404).send({ error: "Not found" });
-    if (req.user!.role !== "admin" && test.user_id && test.user_id !== req.user!.id) {
-      return reply.status(403).send({ error: "Forbidden" });
-    }
-    return test;
+    const access = getTestAccess(test, req.user!.id, req.user!.role);
+    if (!access) return reply.status(403).send({ error: "Forbidden" });
+    return { ...test, _access: access };
   });
 
   // Create test
@@ -93,9 +115,9 @@ export async function testsRoutes(app: FastifyInstance) {
     const body = req.body as Partial<Test>;
     const existing = db.prepare("SELECT * FROM tests WHERE id = ?").get(id) as Test | undefined;
     if (!existing) return reply.status(404).send({ error: "Not found" });
-    if (req.user!.role !== "admin" && existing.user_id && existing.user_id !== req.user!.id) {
-      return reply.status(403).send({ error: "Forbidden" });
-    }
+    const access = getTestAccess(existing, req.user!.id, req.user!.role);
+    if (!access) return reply.status(403).send({ error: "Forbidden" });
+    if (access === "read") return reply.status(403).send({ error: "Read-only access" });
 
     const browser = "browser" in body
       ? (VALID_BROWSERS.includes(body.browser as string) ? body.browser : null)
@@ -130,9 +152,10 @@ export async function testsRoutes(app: FastifyInstance) {
     const { id } = req.params as { id: string };
     const existing = db.prepare("SELECT * FROM tests WHERE id = ?").get(id) as Test | undefined;
     if (!existing) return reply.status(404).send({ error: "Not found" });
-    if (req.user!.role !== "admin" && existing.user_id && existing.user_id !== req.user!.id) {
-      return reply.status(403).send({ error: "Forbidden" });
-    }
+    const access = getTestAccess(existing, req.user!.id, req.user!.role);
+    if (!access || access === "read") return reply.status(403).send({ error: "Forbidden" });
+    // Only owner/admin can delete
+    if (access !== "owner" && access !== "admin") return reply.status(403).send({ error: "Forbidden" });
     db.prepare("DELETE FROM tests WHERE id = ?").run(id);
     return reply.status(204).send();
   });
@@ -142,9 +165,8 @@ export async function testsRoutes(app: FastifyInstance) {
     const { id } = req.params as { id: string };
     const original = db.prepare("SELECT * FROM tests WHERE id = ?").get(id) as Test | undefined;
     if (!original) return reply.status(404).send({ error: "Not found" });
-    if (req.user!.role !== "admin" && original.user_id && original.user_id !== req.user!.id) {
-      return reply.status(403).send({ error: "Forbidden" });
-    }
+    const access = getTestAccess(original, req.user!.id, req.user!.role);
+    if (!access) return reply.status(403).send({ error: "Forbidden" });
 
     const now = Date.now();
     const newId = uuidv4();
@@ -175,9 +197,8 @@ export async function testsRoutes(app: FastifyInstance) {
     const { id } = req.params as { id: string };
     const test = db.prepare("SELECT * FROM tests WHERE id = ?").get(id) as Test | undefined;
     if (!test) return reply.status(404).send({ error: "Not found" });
-    if (req.user!.role !== "admin" && test.user_id && test.user_id !== req.user!.id) {
-      return reply.status(403).send({ error: "Forbidden" });
-    }
+    const access = getTestAccess(test, req.user!.id, req.user!.role);
+    if (!access) return reply.status(403).send({ error: "Forbidden" });
 
     const runId = uuidv4();
     const now = Date.now();

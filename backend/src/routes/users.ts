@@ -3,9 +3,17 @@ import crypto from "crypto";
 import db from "../db/client";
 import { User } from "../types";
 import { hashPassword } from "../auth/session";
-import { requireAdmin } from "../auth/middleware";
+import { requireAdmin, requireAuth } from "../auth/middleware";
 
 export async function usersRoutes(app: FastifyInstance) {
+  // User directory — all authenticated users (for share picker)
+  app.get("/api/users/directory", { preHandler: requireAuth }, async (req) => {
+    return db
+      .prepare("SELECT id, username, role FROM users ORDER BY username ASC")
+      .all()
+      .filter((u: any) => u.id !== req.user!.id);
+  });
+
   // List all users (admin only)
   app.get("/api/users", { preHandler: requireAdmin }, async () => {
     return db

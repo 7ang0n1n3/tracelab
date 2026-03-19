@@ -1,4 +1,4 @@
-# TraceLab `v0.1.0`
+# TraceLab `v0.1.1`
 
 Self-hosted browser test automation platform. Write, run, and monitor Playwright-based tests through a web UI — no CI pipeline required.
 
@@ -9,6 +9,7 @@ Self-hosted browser test automation platform. Write, run, and monitor Playwright
 - **Live logs** — Real-time execution output streamed via SSE
 - **Artifacts** — Automatic screenshots and video recording per run
 - **Auth states** — Capture and reuse browser login sessions across tests
+- **Test sharing** — Share tests with specific users or entire roles (read-only or read-write)
 - **User accounts** — Role-based access (Admin, Dev, QA) with per-user data siloing
 - **Dashboard** — Run history, pass/fail trends, recent activity
 

@@ -9,6 +9,7 @@ import { settingsRoutes } from "./routes/settings";
 import { codegenRoutes } from "./routes/codegen";
 import { authRoutes } from "./routes/auth";
 import { usersRoutes } from "./routes/users";
+import { testSharesRoutes } from "./routes/test-shares";
 import { purgeExpiredSessions } from "./auth/session";
 
 const app = Fastify({ logger: true });
@@ -48,6 +49,7 @@ async function main() {
   await app.register(settingsRoutes);
   await app.register(codegenRoutes);
   await app.register(usersRoutes);
+  await app.register(testSharesRoutes);
 
   const port = parseInt(process.env.PORT || "4000", 10);
   await app.listen({ port, host: "0.0.0.0" });

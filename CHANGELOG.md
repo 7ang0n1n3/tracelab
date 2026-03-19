@@ -6,6 +6,23 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [0.1.1] — 2026-03-19
+
+### Added
+- Test sharing — test owners and admins can share any test with specific users or with all users of a given role (admin/dev/qa)
+- Two permission levels per share: **read-only** (can view script and run the test, cannot edit or delete) and **read-write** (full edit access except delete)
+- Sharing panel on the test detail page, visible to the test owner and admins; lists current shares with remove button and an add-share form (user or role picker, permission selector)
+- `GET /api/tests/:id/shares`, `POST /api/tests/:id/shares`, `DELETE /api/tests/:id/shares/:shareId` endpoints (owner/admin only)
+- `GET /api/users/directory` endpoint — returns all users (id, username, role) for any authenticated user; used to populate the share picker
+- `_access` field on the `GET /api/tests/:id` response (`admin` | `owner` | `write` | `read`) so the frontend knows which controls to show
+- `test_shares` DB table created on startup (safe no-op migration on existing instances)
+
+### Changed
+- Test list query now includes tests shared with the current user or their role
+- Monaco editor enters read-only mode when `_access === 'read'`; recorder, save, and delete controls are hidden for read-only viewers
+
+---
+
 ## [0.1.0] — 2026-03-19
 
 ### Added

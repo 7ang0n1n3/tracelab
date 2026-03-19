@@ -57,6 +57,15 @@ export interface AuthState {
   last_used_at: number | null;
 }
 
+export interface TestShare {
+  id: string;
+  test_id: string;
+  grantee_type: "user" | "role";
+  grantee_id: string;
+  permission: "read" | "write";
+  created_at: number;
+}
+
 export interface Setting {
   key: string;
   value: string;

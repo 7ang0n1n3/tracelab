@@ -11,6 +11,7 @@ import { StatusBadge } from "@/components/ui/StatusBadge";
 import { RecorderPanel } from "@/components/recorder/RecorderPanel";
 import { ArrowLeft, Play, Save, Trash2, Copy } from "lucide-react";
 import { useTheme } from "@/context/ThemeContext";
+import { SharesPanel } from "@/components/test/SharesPanel";
 
 const MonacoEditor = dynamic(() => import("@monaco-editor/react"), { ssr: false });
 
@@ -116,6 +117,11 @@ export default function TestDetailPage() {
   if (loading) return <div className="text-muted text-sm">Loading...</div>;
   if (!test) return <div className="text-muted text-sm">Test not found.</div>;
 
+  const access = test._access as string;
+  const isReadOnly = access === "read";
+  const canShare = access === "owner" || access === "admin";
+  const canDelete = access === "owner" || access === "admin";
+
   return (
     <div className="space-y-5 max-w-4xl">
       {/* Header */}
@@ -125,8 +131,13 @@ export default function TestDetailPage() {
           <h1 className="text-xl font-semibold text-slate-100">{name || "Untitled"}</h1>
           {dirty && <span className="text-xs text-warning px-1.5 py-0.5 bg-yellow-900/30 border border-yellow-700/30 rounded">Unsaved</span>}
         </div>
-        <div className="flex gap-2">
-          {dirty && (
+        <div className="flex items-center gap-2">
+          {isReadOnly && (
+            <span className="text-xs text-muted px-2 py-0.5 bg-zinc-800 border border-zinc-700/40 rounded">
+              read-only
+            </span>
+          )}
+          {dirty && !isReadOnly && (
             <Button variant="primary" size="sm" onClick={handleSave} disabled={saving}>
               <Save size={13} />
               {saving ? "Saving..." : "Save"}
@@ -139,9 +150,11 @@ export default function TestDetailPage() {
           <Button variant="ghost" size="sm" onClick={() => api.tests.duplicate(id).then(load)}>
             <Copy size={13} />
           </Button>
-          <Button variant="danger" size="sm" onClick={handleDelete}>
-            <Trash2 size={13} />
-          </Button>
+          {canDelete && (
+            <Button variant="danger" size="sm" onClick={handleDelete}>
+              <Trash2 size={13} />
+            </Button>
+          )}
         </div>
       </div>
 
@@ -225,10 +238,12 @@ export default function TestDetailPage() {
       </div>
 
       {/* Recorder */}
-      <RecorderPanel
-        defaultUrl={baseUrl}
-        onScript={(s) => { setScript(s); markDirty(); }}
-      />
+      {!isReadOnly && (
+        <RecorderPanel
+          defaultUrl={baseUrl}
+          onScript={(s) => { setScript(s); markDirty(); }}
+        />
+      )}
 
       {/* Script editor */}
       <div className="bg-bg-surface border border-border rounded-lg overflow-hidden">
@@ -240,7 +255,7 @@ export default function TestDetailPage() {
           height="420px"
           language="javascript"
           value={script}
-          onChange={(v) => { setScript(v ?? ""); markDirty(); }}
+          onChange={(v) => { if (!isReadOnly) { setScript(v ?? ""); markDirty(); } }}
           theme={theme === "dark" ? "vs-dark" : "vs"}
           options={{
             minimap: { enabled: false },
@@ -249,9 +264,13 @@ export default function TestDetailPage() {
             scrollBeyondLastLine: false,
             wordWrap: "on",
             padding: { top: 12 },
+            readOnly: isReadOnly,
           }}
         />
       </div>
+
+      {/* Sharing */}
+      {canShare && <SharesPanel testId={id} />}
 
       {/* Run history */}
       {runs.length > 0 && (

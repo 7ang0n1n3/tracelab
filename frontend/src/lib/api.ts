@@ -30,6 +30,13 @@ export const api = {
     delete: (id: string) => apiFetch<void>(`/tests/${id}`, { method: "DELETE" }),
     duplicate: (id: string) => apiFetch<any>(`/tests/${id}/duplicate`, { method: "POST" }),
     run: (id: string) => apiFetch<{ runId: string }>(`/tests/${id}/run`, { method: "POST" }),
+    shares: {
+      list: (testId: string) => apiFetch<any[]>(`/tests/${testId}/shares`),
+      add: (testId: string, data: { grantee_type: string; grantee_id: string; permission: string }) =>
+        apiFetch<any>(`/tests/${testId}/shares`, { method: "POST", body: JSON.stringify(data) }),
+      remove: (testId: string, shareId: string) =>
+        apiFetch<void>(`/tests/${testId}/shares/${shareId}`, { method: "DELETE" }),
+    },
   },
 
   // Runs
@@ -68,8 +75,9 @@ export const api = {
       apiFetch<Record<string, string>>("/settings", { method: "PUT", body: JSON.stringify(data) }),
   },
 
-  // Users (admin only)
+  // Users
   users: {
+    directory: () => apiFetch<any[]>("/users/directory"),
     list: () => apiFetch<any[]>("/users"),
     create: (data: { username: string; password: string; role: string }) =>
       apiFetch<any>("/users", { method: "POST", body: JSON.stringify(data) }),
