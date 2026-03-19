@@ -7,11 +7,19 @@ import { requireAuth } from "../auth/middleware";
 
 const ARTIFACTS_PATH = process.env.ARTIFACTS_PATH || "./data/artifacts";
 
-function canAccessTest(userId: string, role: string, testId: string): boolean {
-  if (role === "admin") return true;
+function canAccessTest(userId: string, userRole: string, testId: string): boolean {
+  if (userRole === "admin") return true;
   const test = db.prepare("SELECT user_id FROM tests WHERE id = ?").get(testId) as Pick<Test, "user_id"> | undefined;
   if (!test) return false;
-  return !test.user_id || test.user_id === userId;
+  if (!test.user_id || test.user_id === userId) return true;
+  const share = db.prepare(`
+    SELECT 1 FROM test_shares
+    WHERE test_id = ? AND (
+      (grantee_type = 'user' AND grantee_id = ?) OR
+      (grantee_type = 'role' AND grantee_id = ?)
+    )
+  `).get(testId, userId, userRole);
+  return !!share;
 }
 
 export async function runsRoutes(app: FastifyInstance) {
@@ -30,9 +38,14 @@ export async function runsRoutes(app: FastifyInstance) {
       if (status) { conditions.push("status = ?"); params.push(status); }
       if (conditions.length) query += " WHERE " + conditions.join(" AND ");
     } else {
-      // Join to tests to filter by ownership
-      query = "SELECT runs.* FROM runs INNER JOIN tests ON runs.test_id = tests.id WHERE (tests.user_id = ? OR tests.user_id IS NULL)";
-      params.push(req.user!.id);
+      query = `SELECT runs.* FROM runs INNER JOIN tests ON runs.test_id = tests.id
+        WHERE (tests.user_id = ? OR tests.user_id IS NULL OR EXISTS (
+          SELECT 1 FROM test_shares ts WHERE ts.test_id = tests.id AND (
+            (ts.grantee_type = 'user' AND ts.grantee_id = ?) OR
+            (ts.grantee_type = 'role' AND ts.grantee_id = ?)
+          )
+        ))`;
+      params.push(req.user!.id, req.user!.id, req.user!.role);
       if (test_id) { query += " AND runs.test_id = ?"; params.push(test_id); }
       if (status) { query += " AND runs.status = ?"; params.push(status); }
     }
