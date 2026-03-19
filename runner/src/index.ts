@@ -104,6 +104,8 @@ async function main() {
     const { runId } = req.body as { runId: string };
     try {
       await startVnc(runId);
+      // Give the noVNC client 5 seconds to connect before the test starts
+      await new Promise((r) => setTimeout(r, 5000));
       return reply.send({ vncPort: NOVNC_PORT });
     } catch (err: any) {
       return reply.status(500).send({ error: err.message });
