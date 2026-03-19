@@ -12,6 +12,7 @@ import { RecorderPanel } from "@/components/recorder/RecorderPanel";
 import { ArrowLeft, Play, Save, Trash2, Copy } from "lucide-react";
 import { useTheme } from "@/context/ThemeContext";
 import { SharesPanel } from "@/components/test/SharesPanel";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 
 const MonacoEditor = dynamic(() => import("@monaco-editor/react"), { ssr: false });
 
@@ -27,6 +28,7 @@ export default function TestDetailPage() {
   const [running, setRunning] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [dirty, setDirty] = useState(false);
+  const [confirm, setConfirm] = useState<{ message: string; onConfirm: () => void } | null>(null);
 
   // Editable fields
   const [name, setName] = useState("");
@@ -106,10 +108,15 @@ export default function TestDetailPage() {
     }
   }
 
-  async function handleDelete() {
-    if (!confirm(`Delete "${name}"? This will also delete all run history.`)) return;
-    await api.tests.delete(id);
-    router.push("/tests");
+  function handleDelete() {
+    setConfirm({
+      message: `Delete "${name}"? This will also delete all run history.`,
+      onConfirm: async () => {
+        setConfirm(null);
+        await api.tests.delete(id);
+        router.push("/tests");
+      },
+    });
   }
 
   const markDirty = () => setDirty(true);
@@ -124,6 +131,13 @@ export default function TestDetailPage() {
 
   return (
     <div className="space-y-5 max-w-4xl">
+      {confirm && (
+        <ConfirmDialog
+          message={confirm.message}
+          onConfirm={confirm.onConfirm}
+          onCancel={() => setConfirm(null)}
+        />
+      )}
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">

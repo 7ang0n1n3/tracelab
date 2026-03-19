@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
 import { Button } from "@/components/ui/Button";
 import { Plus, Trash2, Pencil, X, Check, Ban, CircleCheck } from "lucide-react";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { formatDistanceToNow } from "date-fns";
 
 type User = { id: string; username: string; role: string; disabled: number; last_login: number | null; created_at: number };
@@ -34,6 +35,7 @@ export default function UsersPage() {
   const [form, setForm] = useState({ username: "", password: "", role: "qa" });
   const [editForm, setEditForm] = useState({ username: "", password: "", role: "qa" });
   const [error, setError] = useState("");
+  const [confirm, setConfirm] = useState<{ message: string; onConfirm: () => void } | null>(null);
 
   async function load() {
     setLoading(true);
@@ -79,29 +81,47 @@ export default function UsersPage() {
     }
   }
 
-  async function handleToggleDisabled(user: User) {
-    const action = user.disabled ? "enable" : "disable";
-    if (!confirm(`${action.charAt(0).toUpperCase() + action.slice(1)} account "${user.username}"?`)) return;
-    try {
-      await api.users.update(user.id, { disabled: !user.disabled });
-      load();
-    } catch (err: any) {
-      setError(err.message);
-    }
+  function handleToggleDisabled(user: User) {
+    const action = user.disabled ? "Enable" : "Disable";
+    setConfirm({
+      message: `${action} account "${user.username}"?`,
+      onConfirm: async () => {
+        setConfirm(null);
+        try {
+          await api.users.update(user.id, { disabled: !user.disabled });
+          load();
+        } catch (err: any) {
+          setError(err.message);
+        }
+      },
+    });
   }
 
-  async function handleDelete(id: string, username: string) {
-    if (!confirm(`Delete user "${username}"?`)) return;
-    try {
-      await api.users.delete(id);
-      load();
-    } catch (err: any) {
-      setError(err.message);
-    }
+  function handleDelete(id: string, username: string) {
+    setConfirm({
+      message: `Delete user "${username}"?`,
+      onConfirm: async () => {
+        setConfirm(null);
+        try {
+          await api.users.delete(id);
+          load();
+        } catch (err: any) {
+          setError(err.message);
+        }
+      },
+    });
   }
 
   return (
     <div className="space-y-5 max-w-3xl">
+      {confirm && (
+        <ConfirmDialog
+          message={confirm.message}
+          onConfirm={confirm.onConfirm}
+          onCancel={() => setConfirm(null)}
+          confirmLabel="Confirm"
+        />
+      )}
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-semibold text-slate-100">User Management</h1>
         <Button size="sm" onClick={() => { setShowCreate(true); setError(""); }}>

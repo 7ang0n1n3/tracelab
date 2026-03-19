@@ -5,6 +5,7 @@ import Link from "next/link";
 import { formatDistanceToNow } from "date-fns";
 import { api } from "@/lib/api";
 import { Button } from "@/components/ui/Button";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { Plus, Play, Copy, Trash2, Search } from "lucide-react";
 import { useRouter } from "next/navigation";
 
@@ -14,6 +15,7 @@ export default function TestsPage() {
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
   const [running, setRunning] = useState<string | null>(null);
+  const [confirm, setConfirm] = useState<{ message: string; onConfirm: () => void } | null>(null);
 
   async function load() {
     setLoading(true);
@@ -43,14 +45,27 @@ export default function TestsPage() {
     load();
   }
 
-  async function handleDelete(id: string, name: string) {
-    if (!confirm(`Delete "${name}"?`)) return;
-    await api.tests.delete(id);
-    load();
+  function handleDelete(id: string, name: string) {
+    setConfirm({
+      message: `Delete "${name}"?`,
+      onConfirm: async () => {
+        setConfirm(null);
+        await api.tests.delete(id);
+        load();
+      },
+    });
   }
 
   return (
     <div className="space-y-5">
+      {confirm && (
+        <ConfirmDialog
+          message={confirm.message}
+          onConfirm={confirm.onConfirm}
+          onCancel={() => setConfirm(null)}
+        />
+      )}
+
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { formatDistanceToNow } from "date-fns";
 import { api } from "@/lib/api";
 import { Button } from "@/components/ui/Button";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { Plus, Trash2, RefreshCw, Video, CheckCircle } from "lucide-react";
 
 export default function AuthPage() {
@@ -16,6 +17,7 @@ export default function AuthPage() {
   const [vncPort, setVncPort] = useState<number | null>(null);
   const [finishing, setFinishing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [confirm, setConfirm] = useState<{ message: string; onConfirm: () => void } | null>(null);
 
   async function load() {
     setLoading(true);
@@ -68,14 +70,26 @@ export default function AuthPage() {
     }
   }
 
-  async function handleDelete(id: string, name: string) {
-    if (!confirm(`Delete auth state "${name}"?`)) return;
-    await api.authStates.delete(id);
-    load();
+  function handleDelete(id: string, name: string) {
+    setConfirm({
+      message: `Delete auth state "${name}"?`,
+      onConfirm: async () => {
+        setConfirm(null);
+        await api.authStates.delete(id);
+        load();
+      },
+    });
   }
 
   return (
     <div className="space-y-5 max-w-3xl">
+      {confirm && (
+        <ConfirmDialog
+          message={confirm.message}
+          onConfirm={confirm.onConfirm}
+          onCancel={() => setConfirm(null)}
+        />
+      )}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-xl font-semibold text-slate-100">Auth States</h1>

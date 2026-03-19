@@ -6,12 +6,14 @@ import { formatDistanceToNow, format } from "date-fns";
 import { api } from "@/lib/api";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { Button } from "@/components/ui/Button";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { RefreshCw, Trash2 } from "lucide-react";
 
 export default function RunsPage() {
   const [runs, setRuns] = useState<any[]>([]);
   const [tests, setTests] = useState<Record<string, any>>({});
   const [loading, setLoading] = useState(true);
+  const [confirm, setConfirm] = useState<{ message: string; onConfirm: () => void } | null>(null);
 
   async function load() {
     setLoading(true);
@@ -27,13 +29,26 @@ export default function RunsPage() {
   useEffect(() => { load(); }, []);
 
   async function handleDelete(id: string) {
-    if (!confirm("Delete this run and its artifacts?")) return;
-    await api.runs.delete(id);
-    load();
+    setConfirm({
+      message: "Delete this run and its artifacts?",
+      onConfirm: async () => {
+        setConfirm(null);
+        await api.runs.delete(id);
+        load();
+      },
+    });
   }
 
   return (
     <div className="space-y-5">
+      {confirm && (
+        <ConfirmDialog
+          message={confirm.message}
+          onConfirm={confirm.onConfirm}
+          onCancel={() => setConfirm(null)}
+        />
+      )}
+
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-xl font-semibold text-slate-100">Runs</h1>
