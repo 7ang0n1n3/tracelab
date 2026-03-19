@@ -41,6 +41,7 @@ export default function TestDetailPage() {
   const [useAuth, setUseAuth] = useState(true);
   const [browser, setBrowser] = useState<string>("");
   const [captureVideo, setCaptureVideo] = useState<string>("");
+  const [headless, setHeadless] = useState<string>("");
 
   async function load() {
     setLoading(true);
@@ -62,6 +63,7 @@ export default function TestDetailPage() {
       setUseAuth(t.use_auth === 1);
       setBrowser(t.browser ?? "");
       setCaptureVideo(t.capture_video === null || t.capture_video === undefined ? "" : t.capture_video === 1 ? "true" : "false");
+      setHeadless(t.headless === null || t.headless === undefined ? "" : t.headless === 1 ? "true" : "false");
       // Parse tags from JSON array to comma string
       try {
         const parsed = JSON.parse(t.tags || "[]");
@@ -88,6 +90,7 @@ export default function TestDetailPage() {
         tags: tagList.length ? JSON.stringify(tagList) : null,
         browser: browser || null,
         capture_video: captureVideo === "" ? null : captureVideo === "true" ? 1 : 0,
+        headless: headless === "" ? null : headless === "true" ? 1 : 0,
       });
       setDirty(false);
     } catch (e: any) {
@@ -205,7 +208,7 @@ export default function TestDetailPage() {
               className={`w-full bg-bg-elevated border border-border rounded px-3 py-2 text-sm text-slate-200 placeholder:text-muted focus:outline-none focus:border-accent${isReadOnly ? " opacity-60 cursor-default" : ""}`} />
           </div>
         </div>
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-3 gap-4">
           <div>
             <label className="block text-xs text-muted mb-1">Browser <span className="text-muted/60">(overrides system default)</span></label>
             <select value={browser} disabled={isReadOnly} onChange={(e) => { setBrowser(e.target.value); markDirty(); }}
@@ -219,6 +222,15 @@ export default function TestDetailPage() {
           <div>
             <label className="block text-xs text-muted mb-1">Record Video <span className="text-muted/60">(overrides system default)</span></label>
             <select value={captureVideo} disabled={isReadOnly} onChange={(e) => { setCaptureVideo(e.target.value); markDirty(); }}
+              className={`w-full bg-bg-elevated border border-border rounded px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-accent${isReadOnly ? " opacity-60 cursor-default" : ""}`}>
+              <option value="">System default</option>
+              <option value="true">On</option>
+              <option value="false">Off</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-xs text-muted mb-1">Headless <span className="text-muted/60">(overrides system default)</span></label>
+            <select value={headless} disabled={isReadOnly} onChange={(e) => { setHeadless(e.target.value); markDirty(); }}
               className={`w-full bg-bg-elevated border border-border rounded px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-accent${isReadOnly ? " opacity-60 cursor-default" : ""}`}>
               <option value="">System default</option>
               <option value="true">On</option>

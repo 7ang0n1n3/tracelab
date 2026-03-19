@@ -6,6 +6,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [0.1.6] — 2026-03-20
+
+### Added
+- Per-test headless override — each test has a "Headless" selector (System default / On / Off) that overrides the global headless setting at run time; `headless` column added to the tests table via safe migration
+- VNC connect delay — when a headed test run starts, the runner waits 2 seconds after VNC is ready before launching the browser, giving the noVNC client time to connect before anything appears on screen
+
+---
+
 ## [0.1.5] — 2026-03-20
 
 ### Fixed

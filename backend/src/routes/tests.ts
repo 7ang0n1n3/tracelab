@@ -87,9 +87,10 @@ export async function testsRoutes(app: FastifyInstance) {
     const id = uuidv4();
     const browser = VALID_BROWSERS.includes(body.browser as string) ? body.browser : null;
     const captureVideo = body.capture_video != null ? (body.capture_video ? 1 : 0) : null;
+    const headless = body.headless != null ? (body.headless ? 1 : 0) : null;
     db.prepare(`
-      INSERT INTO tests (id, user_id, name, description, app_name, base_url, script, tags, auth_state_id, use_auth, browser, capture_video, created_at, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO tests (id, user_id, name, description, app_name, base_url, script, tags, auth_state_id, use_auth, browser, capture_video, headless, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
       id,
       req.user!.id,
@@ -103,6 +104,7 @@ export async function testsRoutes(app: FastifyInstance) {
       body.use_auth ?? 1,
       browser ?? null,
       captureVideo,
+      headless,
       now,
       now
     );
@@ -125,10 +127,13 @@ export async function testsRoutes(app: FastifyInstance) {
     const captureVideo = "capture_video" in body
       ? (body.capture_video != null ? (body.capture_video ? 1 : 0) : null)
       : existing.capture_video;
+    const headless = "headless" in body
+      ? (body.headless != null ? (body.headless ? 1 : 0) : null)
+      : existing.headless;
     db.prepare(`
       UPDATE tests SET
         name = ?, description = ?, app_name = ?, base_url = ?,
-        script = ?, tags = ?, auth_state_id = ?, use_auth = ?, browser = ?, capture_video = ?, updated_at = ?
+        script = ?, tags = ?, auth_state_id = ?, use_auth = ?, browser = ?, capture_video = ?, headless = ?, updated_at = ?
       WHERE id = ?
     `).run(
       body.name ?? existing.name,
@@ -141,6 +146,7 @@ export async function testsRoutes(app: FastifyInstance) {
       body.use_auth ?? existing.use_auth,
       browser ?? null,
       captureVideo ?? null,
+      headless ?? null,
       Date.now(),
       id
     );
@@ -171,8 +177,8 @@ export async function testsRoutes(app: FastifyInstance) {
     const now = Date.now();
     const newId = uuidv4();
     db.prepare(`
-      INSERT INTO tests (id, user_id, name, description, app_name, base_url, script, tags, auth_state_id, use_auth, browser, capture_video, created_at, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO tests (id, user_id, name, description, app_name, base_url, script, tags, auth_state_id, use_auth, browser, capture_video, headless, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
       newId,
       req.user!.id,
@@ -186,6 +192,7 @@ export async function testsRoutes(app: FastifyInstance) {
       original.use_auth,
       original.browser ?? null,
       original.capture_video ?? null,
+      original.headless ?? null,
       now,
       now
     );

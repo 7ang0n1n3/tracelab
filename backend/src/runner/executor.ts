@@ -35,6 +35,9 @@ export async function dispatchRun(runId: string, test: Test) {
   if (test.capture_video !== null && test.capture_video !== undefined) {
     config.captureVideo = test.capture_video === 1;
   }
+  if (test.headless !== null && test.headless !== undefined) {
+    config.headless = test.headless === 1;
+  }
 
   let authStatePath: string | null = null;
   if (test.use_auth && test.auth_state_id) {

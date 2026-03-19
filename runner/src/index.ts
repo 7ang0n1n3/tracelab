@@ -82,7 +82,11 @@ async function main() {
     };
 
     const useVnc = !body.config.headless;
-    if (useVnc) await startVnc(body.runId);
+    if (useVnc) {
+      await startVnc(body.runId);
+      // Give the noVNC client time to connect before the browser launches
+      await new Promise((r) => setTimeout(r, 2000));
+    }
     try {
       const result = await executeScript({
         runId: body.runId,

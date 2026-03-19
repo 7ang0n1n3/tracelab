@@ -29,6 +29,7 @@ export interface Test {
   use_auth: number; // 0 or 1
   browser: "chromium" | "firefox" | "webkit" | null; // null = use system default
   capture_video: number | null; // null = use system default, 0 = off, 1 = on
+  headless: number | null; // null = use system default, 0 = off, 1 = on
   created_at: number;
   updated_at: number;
 }
