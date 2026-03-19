@@ -7,13 +7,21 @@ import { Run, Test } from "../types";
 
 const ARTIFACTS_PATH = process.env.ARTIFACTS_PATH || "./data/artifacts";
 
-function canAccessRun(userId: string, role: string, runId: string): boolean {
-  if (role === "admin") return true;
+function canAccessRun(userId: string, userRole: string, runId: string): boolean {
+  if (userRole === "admin") return true;
   const run = db.prepare("SELECT test_id FROM runs WHERE id = ?").get(runId) as Pick<Run, "test_id"> | undefined;
   if (!run) return false;
   const test = db.prepare("SELECT user_id FROM tests WHERE id = ?").get(run.test_id) as Pick<Test, "user_id"> | undefined;
   if (!test) return false;
-  return !test.user_id || test.user_id === userId;
+  if (!test.user_id || test.user_id === userId) return true;
+  const share = db.prepare(`
+    SELECT 1 FROM test_shares
+    WHERE test_id = ? AND (
+      (grantee_type = 'user' AND grantee_id = ?) OR
+      (grantee_type = 'role' AND grantee_id = ?)
+    )
+  `).get(run.test_id, userId, userRole);
+  return !!share;
 }
 
 export async function artifactsRoutes(app: FastifyInstance) {
