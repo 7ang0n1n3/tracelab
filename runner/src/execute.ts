@@ -32,7 +32,7 @@ export interface ExecuteResult {
 }
 
 export async function executeScript(opts: ExecuteOptions): Promise<ExecuteResult> {
-  const { runId, script, authStatePath, config } = opts;
+  const { runId, script, baseUrl, authStatePath, config } = opts;
   const artifactDir = path.join(ARTIFACTS_PATH, runId);
   fs.mkdirSync(artifactDir, { recursive: true });
 
@@ -100,7 +100,7 @@ export async function executeScript(opts: ExecuteOptions): Promise<ExecuteResult
 
     // Run in a vm context to restrict direct access to Node.js globals
     // (require, process, __dirname, etc. are not available in the sandbox)
-    const sandbox = vm.createContext({ page, context, browser, takeScreenshot, log });
+    const sandbox = vm.createContext({ page, context, browser, takeScreenshot, log, baseUrl: opts.baseUrl });
     const promise = vm.runInContext(`(async () => { ${script} })()`, sandbox, { displayErrors: true });
     await promise;
 

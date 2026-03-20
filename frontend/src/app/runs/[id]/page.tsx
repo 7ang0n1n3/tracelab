@@ -7,7 +7,7 @@ import { format } from "date-fns";
 import { api } from "@/lib/api";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { Button } from "@/components/ui/Button";
-import { ArrowLeft, RefreshCw, Image as ImageIcon, Video, Download } from "lucide-react";
+import { ArrowLeft, RefreshCw, Image as ImageIcon, Video, Download, PackageOpen } from "lucide-react";
 
 const TERMINAL_STATUSES = new Set(["passed", "failed", "error"]);
 
@@ -234,7 +234,17 @@ export default function RunDetailPage() {
             <p className="text-xs text-muted mt-0.5 font-mono">{id}</p>
           </div>
         </div>
-        <Button variant="ghost" size="sm" onClick={load}><RefreshCw size={13} /></Button>
+        <div className="flex items-center gap-2">
+          {!isActive && (
+            <a href={api.artifacts.exportUrl(id)} download>
+              <Button variant="outline" size="sm">
+                <PackageOpen size={13} className="mr-1.5" />
+                Export ZIP
+              </Button>
+            </a>
+          )}
+          <Button variant="ghost" size="sm" onClick={load}><RefreshCw size={13} /></Button>
+        </div>
       </div>
 
       {/* Stats */}

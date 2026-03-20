@@ -21,7 +21,7 @@ import { useTheme } from "@/context/ThemeContext";
 const nav = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/tests",     label: "Tests",     icon: FlaskConical },
-  { href: "/runs",      label: "Runs",      icon: PlayCircle },
+  { href: "/runs",      label: "Test Results", icon: PlayCircle },
   { href: "/auth",      label: "Auth States", icon: KeyRound },
   { href: "/settings",  label: "Settings",  icon: Settings },
 ];

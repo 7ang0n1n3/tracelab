@@ -1,6 +1,8 @@
 import { FastifyInstance } from "fastify";
 import path from "path";
 import fs from "fs";
+import os from "os";
+import { spawnSync } from "child_process";
 import db from "../db/client";
 import { requireAuth } from "../auth/middleware";
 import { Run, Test } from "../types";
@@ -83,5 +85,67 @@ export async function artifactsRoutes(app: FastifyInstance) {
       size: fs.statSync(path.join(dir, f)).size,
     }));
     return { files };
+  });
+
+  // Export all artifacts + log as a ZIP
+  app.get("/api/artifacts/:runId/export", { preHandler: requireAuth }, async (req, reply) => {
+    const { runId } = req.params as { runId: string };
+    if (!canAccessRun(req.user!.id, req.user!.role, runId)) {
+      return reply.status(403).send({ error: "Forbidden" });
+    }
+
+    const run = db.prepare("SELECT * FROM runs WHERE id = ?").get(runId) as Run | undefined;
+    if (!run) return reply.status(404).send({ error: "Run not found" });
+
+    const test = db.prepare("SELECT name FROM tests WHERE id = ?").get(run.test_id) as Pick<Test, "name"> | undefined;
+    const testName = test?.name ?? "unknown";
+    const safeName = testName.replace(/[^a-z0-9_-]/gi, "_").toLowerCase();
+    const filename = `tracelab-${safeName}-${runId.slice(0, 8)}.zip`;
+
+    const artifactDir = path.join(ARTIFACTS_PATH, runId);
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "tracelab-export-"));
+    const zipPath = path.join(tmpDir, "export.zip");
+
+    try {
+      // Write run metadata
+      const info = {
+        id: run.id,
+        test_name: testName,
+        status: run.status,
+        started_at: run.started_at,
+        finished_at: run.finished_at,
+        duration_ms: run.duration_ms,
+        error_message: run.error_message,
+      };
+      fs.writeFileSync(path.join(tmpDir, "run-info.json"), JSON.stringify(info, null, 2), "utf8");
+
+      // Write log
+      if (run.log) {
+        fs.writeFileSync(path.join(tmpDir, "log.txt"), run.log, "utf8");
+      }
+
+      // Zip artifacts directly from their directory (no copy)
+      if (fs.existsSync(artifactDir) && fs.readdirSync(artifactDir).length > 0) {
+        const result = spawnSync("zip", ["-r", zipPath, "."], { cwd: artifactDir, timeout: 60000 });
+        if (result.status !== 0) throw new Error(`zip artifacts failed: ${result.stderr?.toString()}`);
+      }
+
+      // Add metadata files to the zip (or create zip if no artifacts)
+      const metaFiles = ["run-info.json", ...(run.log ? ["log.txt"] : [])];
+      const result = spawnSync("zip", [zipPath, ...metaFiles], { cwd: tmpDir, timeout: 10000 });
+      if (result.status !== 0) throw new Error(`zip metadata failed: ${result.stderr?.toString()}`);
+
+      reply.header("Content-Type", "application/zip");
+      reply.header("Content-Disposition", `attachment; filename="${filename}"`);
+
+      const cleanup = () => fs.rmSync(tmpDir, { recursive: true, force: true });
+      const stream = fs.createReadStream(zipPath);
+      stream.on("close", cleanup);
+      stream.on("error", cleanup);
+      return reply.send(stream);
+    } catch (err) {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+      throw err;
+    }
   });
 }

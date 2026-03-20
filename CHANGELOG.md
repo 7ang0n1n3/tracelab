@@ -6,6 +6,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [0.1.7] — 2026-03-20
+
+### Added
+- Per-run ZIP export — "Export ZIP" button on the run detail page packages all artifacts (screenshots, video, trace) together with `log.txt` (full execution log) and `run-info.json` (test name, status, timestamps, error message) into a single download; button is only shown once the run has finished; backend uses `spawnSync` with argument arrays (no shell interpolation) and cleans up the temp directory on both stream close and stream error
+
+---
+
 ## [0.1.6] — 2026-03-20
 
 ### Added

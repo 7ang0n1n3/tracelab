@@ -91,5 +91,6 @@ export const api = {
     screenshots: (runId: string) => apiFetch<any[]>(`/artifacts/${runId}/screenshots`),
     list: (runId: string) => apiFetch<any>(`/artifacts/${runId}`),
     fileUrl: (runId: string, name: string) => `/api/artifacts/${runId}/file/${name}`,
+    exportUrl: (runId: string) => `/api/artifacts/${runId}/export`,
   },
 };
