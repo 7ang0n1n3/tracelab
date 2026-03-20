@@ -143,31 +143,30 @@ export function initSchema() {
     ).run(
       crypto.randomUUID(),
       adminId,
-      "DuckDuckGo — Arch Linux search",
-      "Sample test: verifies the runner can launch a browser, navigate to DuckDuckGo, perform a search, and capture a screenshot. Run this after a fresh install to confirm the setup is working correctly.",
-      "DuckDuckGo",
-      "https://duckduckgo.com",
-      `// Sample TraceLab test — DuckDuckGo search
+      "TraceLab — smoke test",
+      "Sample test: verifies the runner can launch a browser, navigate to tangonine.com and the TraceLab GitHub repo, and capture screenshots. Run this after a fresh install to confirm the setup is working correctly.",
+      "TraceLab",
+      "https://www.tangonine.com",
+      `// Sample TraceLab test — smoke test
 // Run this to verify your Playwright runner is set up correctly.
 
-await page.goto('https://duckduckgo.com');
-log('Navigated to DuckDuckGo');
+await page.goto('https://www.tangonine.com');
+log('Navigated to tangonine.com');
+await takeScreenshot('tangonine-home');
 
-await page.locator('input[name="q"]').fill('Arch Linux');
-await takeScreenshot('search-filled');
+await page.waitForTimeout(3000);
 
-await page.keyboard.press('Enter');
-await page.waitForSelector('#r1-0', { timeout: 10000 });
-log('Search results loaded');
+await page.goto('https://github.com/7ang0n1n3/tracelab');
+log('Navigated to TraceLab GitHub repo');
+await takeScreenshot('tracelab-github');
 
-await takeScreenshot('search-results');
-log('Sample test complete — runner is working correctly');
+log('Smoke test complete — runner is working correctly');
 `,
       JSON.stringify(["sample", "smoke"]),
       0,
       now,
       now
     );
-    console.log("[TraceLab] Sample test created: DuckDuckGo — Arch Linux search");
+    console.log("[TraceLab] Sample test created: TraceLab — smoke test");
   }
 }
