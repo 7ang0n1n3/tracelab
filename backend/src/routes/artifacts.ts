@@ -97,7 +97,7 @@ export async function artifactsRoutes(app: FastifyInstance) {
     const run = db.prepare("SELECT * FROM runs WHERE id = ?").get(runId) as Run | undefined;
     if (!run) return reply.status(404).send({ error: "Run not found" });
 
-    const test = db.prepare("SELECT name FROM tests WHERE id = ?").get(run.test_id) as Pick<Test, "name"> | undefined;
+    const test = db.prepare("SELECT name, script FROM tests WHERE id = ?").get(run.test_id) as Pick<Test, "name" | "script"> | undefined;
     const testName = test?.name ?? "unknown";
     const safeName = testName.replace(/[^a-z0-9_-]/gi, "_").toLowerCase();
     const filename = `tracelab-${safeName}-${runId.slice(0, 8)}.zip`;
@@ -124,6 +124,11 @@ export async function artifactsRoutes(app: FastifyInstance) {
         fs.writeFileSync(path.join(tmpDir, "log.txt"), run.log, "utf8");
       }
 
+      // Write test script
+      if (test?.script) {
+        fs.writeFileSync(path.join(tmpDir, "script.js"), test.script, "utf8");
+      }
+
       // Zip artifacts directly from their directory (no copy)
       if (fs.existsSync(artifactDir) && fs.readdirSync(artifactDir).length > 0) {
         const result = spawnSync("zip", ["-r", zipPath, "."], { cwd: artifactDir, timeout: 60000 });
@@ -131,7 +136,7 @@ export async function artifactsRoutes(app: FastifyInstance) {
       }
 
       // Add metadata files to the zip (or create zip if no artifacts)
-      const metaFiles = ["run-info.json", ...(run.log ? ["log.txt"] : [])];
+      const metaFiles = ["run-info.json", ...(run.log ? ["log.txt"] : []), ...(test?.script ? ["script.js"] : [])];
       const result = spawnSync("zip", [zipPath, ...metaFiles], { cwd: tmpDir, timeout: 10000 });
       if (result.status !== 0) throw new Error(`zip metadata failed: ${result.stderr?.toString()}`);
 

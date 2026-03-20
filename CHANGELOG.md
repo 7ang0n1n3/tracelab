@@ -6,6 +6,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [0.1.8] — 2026-03-20
+
+### Changed
+- ZIP export now includes `script.js` — the exact Playwright script used for the run, sourced from the database at export time
+
+---
+
 ## [0.1.7] — 2026-03-20
 
 ### Added
