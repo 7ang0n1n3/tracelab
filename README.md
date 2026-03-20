@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="tracelab_logo.png" alt="TraceLab" width="260" />
+</p>
+
 # TraceLab `v0.1.8`
 
 Self-hosted browser test automation platform. Write, run, and monitor Playwright-based tests through a web UI — no CI pipeline required.

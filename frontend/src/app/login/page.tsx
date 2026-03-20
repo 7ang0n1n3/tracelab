@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Zap } from "lucide-react";
+import Image from "next/image";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -39,11 +39,8 @@ export default function LoginPage() {
     <div className="flex h-screen items-center justify-center bg-bg">
       <div className="w-full max-w-sm">
         {/* Logo */}
-        <div className="flex items-center justify-center gap-2 mb-8">
-          <Zap className="text-accent-bright" size={22} />
-          <span className="text-lg font-semibold tracking-widest text-accent-bright uppercase">
-            TraceLab
-          </span>
+        <div className="flex items-center justify-center mb-8">
+          <Image src="/tracelab_logo.png" alt="TraceLab" width={180} height={60} style={{ objectFit: "contain" }} />
         </div>
 
         <div className="bg-bg-surface border border-border rounded-lg p-8">

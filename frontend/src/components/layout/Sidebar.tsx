@@ -4,13 +4,13 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { clsx } from "clsx";
+import Image from "next/image";
 import {
   LayoutDashboard,
   FlaskConical,
   PlayCircle,
   KeyRound,
   Settings,
-  Zap,
   Users,
   LogOut,
   Sun,
@@ -56,11 +56,8 @@ export function Sidebar() {
   return (
     <aside className="w-56 shrink-0 flex flex-col border-r border-border bg-bg-surface">
       {/* Logo */}
-      <div className="flex items-center gap-2 px-5 py-5 border-b border-border">
-        <Zap className="text-accent-bright" size={18} />
-        <span className="text-sm font-semibold tracking-widest text-accent-bright uppercase">
-          TraceLab
-        </span>
+      <div className="flex items-center px-4 py-4 border-b border-border">
+        <Image src="/tracelab_logo.png" alt="TraceLab" width={140} height={40} style={{ objectFit: "contain" }} />
       </div>
 
       {/* Nav */}
