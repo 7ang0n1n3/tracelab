@@ -56,8 +56,9 @@ export function Sidebar() {
   return (
     <aside className="w-56 shrink-0 flex flex-col border-r border-border bg-bg-surface">
       {/* Logo */}
-      <div className="flex items-center px-4 py-4 border-b border-border">
-        <Image src="/tracelab_logo.png" alt="TraceLab" width={140} height={40} style={{ objectFit: "contain" }} />
+      <div className="flex flex-col items-center justify-center px-4 py-4 border-b border-border gap-1">
+        <Image src="/tracelab_logo.png" alt="TraceLab" width={70} height={20} style={{ objectFit: "contain" }} />
+        <span className="text-[10px] text-muted">v0.1.8</span>
       </div>
 
       {/* Nav */}

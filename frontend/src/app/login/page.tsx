@@ -40,7 +40,7 @@ export default function LoginPage() {
       <div className="w-full max-w-sm">
         {/* Logo */}
         <div className="flex items-center justify-center mb-8">
-          <Image src="/tracelab_logo.png" alt="TraceLab" width={180} height={60} style={{ objectFit: "contain" }} />
+          <Image src="/tracelab_logo.png" alt="TraceLab" width={90} height={30} style={{ objectFit: "contain" }} />
         </div>
 
         <div className="bg-bg-surface border border-border rounded-lg p-8">

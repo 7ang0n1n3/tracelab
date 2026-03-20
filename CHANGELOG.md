@@ -8,8 +8,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [0.1.8] — 2026-03-20
 
+### Added
+- `tracelab_logo.png` replaces the Zap icon on the login page and in the sidebar; logo is centered in both locations
+- Sidebar displays the current version (`v0.1.8`) in small muted text below the logo
+
 ### Changed
 - ZIP export now includes `script.js` — the exact Playwright script used for the run, sourced from the database at export time
+- Login page logo sized at 90×30px; sidebar logo sized at 70×20px
 
 ---
 

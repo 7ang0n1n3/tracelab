@@ -16,6 +16,7 @@ Self-hosted browser test automation platform. Write, run, and monitor Playwright
 - **Test sharing** — Share tests with specific users or entire roles (read-only or read-write)
 - **User accounts** — Role-based access (Admin, Dev, QA) with per-user data siloing
 - **Dashboard** — Run history, pass/fail trends, recent activity
+- **Branding** — Custom logo on login screen and sidebar with version display
 
 ## Quick Start
 
