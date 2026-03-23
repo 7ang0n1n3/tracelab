@@ -6,6 +6,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [0.1.9] — 2026-03-23
+
+### Fixed
+- Login blocked after clean+build — CSRF origin check now allows both `http://localhost:3000` and `http://127.0.0.1:3000`; previously only the `localhost` form was accepted, so browsers using `127.0.0.1` received a 403 on every login attempt
+
+---
+
 ## [0.1.8] — 2026-03-20
 
 ### Added

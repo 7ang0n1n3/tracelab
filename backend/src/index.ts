@@ -16,9 +16,25 @@ const app = Fastify({ logger: true });
 
 const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:3000";
 
+// Build the set of allowed origins: always include both localhost and 127.0.0.1 variants
+function buildAllowedOrigins(frontendUrl: string): string[] {
+  const origins = new Set([frontendUrl]);
+  try {
+    const u = new URL(frontendUrl);
+    if (u.hostname === "localhost") {
+      origins.add(`${u.protocol}//127.0.0.1:${u.port || (u.protocol === "https:" ? 443 : 80)}`);
+    } else if (u.hostname === "127.0.0.1") {
+      origins.add(`${u.protocol}//localhost:${u.port || (u.protocol === "https:" ? 443 : 80)}`);
+    }
+  } catch {}
+  return [...origins];
+}
+
+const ALLOWED_ORIGINS = buildAllowedOrigins(FRONTEND_URL);
+
 async function main() {
   await app.register(cors, {
-    origin: [FRONTEND_URL],
+    origin: ALLOWED_ORIGINS,
     credentials: true,
   });
   // Initialize DB schema + seed
@@ -32,7 +48,7 @@ async function main() {
   app.addHook("preValidation", async (req, reply) => {
     if (!["POST", "PUT", "DELETE", "PATCH"].includes(req.method)) return;
     const origin = req.headers.origin;
-    if (origin && origin !== FRONTEND_URL) {
+    if (origin && !ALLOWED_ORIGINS.includes(origin)) {
       app.log.warn({ origin, url: req.url, ip: req.ip, event: "csrf_blocked" }, "CSRF check failed");
       return reply.status(403).send({ error: "Forbidden" });
     }
