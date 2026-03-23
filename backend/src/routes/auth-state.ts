@@ -42,6 +42,10 @@ export async function authStateRoutes(app: FastifyInstance) {
     const now = Date.now();
     const filePath = path.join(AUTH_STATE_PATH, `${id}.json`);
 
+    if (!isSafePath(filePath)) {
+      return reply.status(500).send({ error: "Could not create auth state" });
+    }
+
     db.prepare(`
       INSERT INTO auth_states (id, user_id, name, app_name, base_url, file_path, created_at, updated_at)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?)
@@ -85,7 +89,7 @@ export async function authStateRoutes(app: FastifyInstance) {
       });
       return reply.send(response.data);
     } catch (err: any) {
-      return reply.status(502).send({ error: "Runner unavailable", detail: err.message });
+      return reply.status(502).send({ error: "Runner unavailable" });
     }
   });
 
@@ -112,7 +116,7 @@ export async function authStateRoutes(app: FastifyInstance) {
       });
       return reply.send(response.data);
     } catch (err: any) {
-      return reply.status(502).send({ error: "Runner unavailable", detail: err.message });
+      return reply.status(502).send({ error: "Runner unavailable" });
     }
   });
 
@@ -130,7 +134,7 @@ export async function authStateRoutes(app: FastifyInstance) {
       db.prepare("UPDATE auth_states SET updated_at = ? WHERE id = ?").run(Date.now(), id);
       return reply.send(response.data);
     } catch (err: any) {
-      return reply.status(502).send({ error: err?.response?.data?.error ?? err.message });
+      return reply.status(502).send({ error: err?.response?.data?.error ?? "Runner unavailable" });
     }
   });
 

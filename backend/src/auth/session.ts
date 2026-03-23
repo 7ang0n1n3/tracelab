@@ -4,12 +4,13 @@ import { User, Session } from "../types";
 
 const SESSION_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
 
-// Lazily loaded HMAC secret (stored in settings on first boot)
+// Lazily loaded HMAC secret (stored in settings on first boot by initSchema)
 let _secret: string | null = null;
 function getSecret(): string {
   if (_secret) return _secret;
   const row = db.prepare("SELECT value FROM settings WHERE key = 'session_secret'").get() as { value: string } | undefined;
-  _secret = row?.value ?? crypto.randomBytes(32).toString("hex");
+  if (!row?.value) throw new Error("Session secret missing — ensure initSchema() has been called before handling requests");
+  _secret = row.value;
   return _secret;
 }
 
@@ -25,10 +26,17 @@ export function hashPassword(password: string): string {
 }
 
 export function verifyPassword(password: string, stored: string): boolean {
-  const [salt, hash] = stored.split(":");
-  if (!salt || !hash) return false;
+  const parts = stored.split(":");
+  // Always run pbkdf2 regardless of hash format to prevent timing oracle
+  const salt = parts[0] ?? "0000000000000000";
+  const expectedHex = parts[1] ?? "0".repeat(128);
   const candidate = crypto.pbkdf2Sync(password, salt, 100000, 64, "sha512").toString("hex");
-  return crypto.timingSafeEqual(Buffer.from(hash, "hex"), Buffer.from(candidate, "hex"));
+  try {
+    const match = crypto.timingSafeEqual(Buffer.from(expectedHex, "hex"), Buffer.from(candidate, "hex"));
+    return match && parts.length === 2;
+  } catch {
+    return false; // buffer length mismatch from malformed stored hash
+  }
 }
 
 export function createSession(userId: string): string {
@@ -52,7 +60,7 @@ export function getSessionUser(token: string): Omit<User, "password_hash"> | nul
   if (!session) return null;
 
   const user = db.prepare(
-    "SELECT id, username, role, disabled, last_login, created_at, updated_at FROM users WHERE id = ?"
+    "SELECT id, username, role, disabled, must_change_password, last_login, created_at, updated_at FROM users WHERE id = ?"
   ).get(session.user_id) as Omit<User, "password_hash"> | undefined;
 
   if (!user || user.disabled) return null;

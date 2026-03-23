@@ -12,7 +12,8 @@ export async function codegenRoutes(app: FastifyInstance) {
       const res = await axios.post(`${RUNNER_URL}/codegen/start`, body);
       return reply.send(res.data);
     } catch (err: any) {
-      return reply.status(502).send({ error: err?.response?.data?.error ?? err.message });
+      req.log.error({ err: (err as any)?.message, url: req.url }, "Codegen runner error");
+      return reply.status(502).send({ error: err?.response?.data?.error ?? "Runner unavailable" });
     }
   });
 
@@ -23,7 +24,8 @@ export async function codegenRoutes(app: FastifyInstance) {
       const res = await axios.post(`${RUNNER_URL}/codegen/finish`, body);
       return reply.send(res.data);
     } catch (err: any) {
-      return reply.status(502).send({ error: err?.response?.data?.error ?? err.message });
+      req.log.error({ err: (err as any)?.message, url: req.url }, "Codegen runner error");
+      return reply.status(502).send({ error: err?.response?.data?.error ?? "Runner unavailable" });
     }
   });
 }

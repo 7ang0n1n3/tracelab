@@ -86,6 +86,13 @@ export const api = {
     delete: (id: string) => apiFetch<void>(`/users/${id}`, { method: "DELETE" }),
   },
 
+  // Auth
+  auth: {
+    me: () => apiFetch<any>("/auth/me"),
+    changePassword: (data: { currentPassword: string; newPassword: string }) =>
+      apiFetch<{ ok: boolean }>("/auth/change-password", { method: "POST", body: JSON.stringify(data) }),
+  },
+
   // Artifacts
   artifacts: {
     screenshots: (runId: string) => apiFetch<any[]>(`/artifacts/${runId}/screenshots`),

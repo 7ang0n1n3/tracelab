@@ -17,7 +17,7 @@ export async function usersRoutes(app: FastifyInstance) {
   // List all users (admin only)
   app.get("/api/users", { preHandler: requireAdmin }, async () => {
     return db
-      .prepare("SELECT id, username, role, disabled, last_login, created_at, updated_at FROM users ORDER BY created_at ASC")
+      .prepare("SELECT id, username, role, disabled, must_change_password, last_login, created_at, updated_at FROM users ORDER BY created_at ASC")
       .all() as Omit<User, "password_hash">[];
   });
 
@@ -42,11 +42,12 @@ export async function usersRoutes(app: FastifyInstance) {
     const now = Date.now();
     const id = crypto.randomUUID();
     db.prepare(
-      "INSERT INTO users (id, username, password_hash, role, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)"
-    ).run(id, username, hashPassword(password), userRole, now, now);
+      "INSERT INTO users (id, username, password_hash, role, must_change_password, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)"
+    ).run(id, username, hashPassword(password), userRole, 1, now, now); // new users must change password on first login
 
+    req.log.info({ actor: req.user!.username, target: username, role: userRole, event: "user_created" }, "Admin created user");
     return reply.status(201).send(
-      db.prepare("SELECT id, username, role, disabled, last_login, created_at, updated_at FROM users WHERE id = ?").get(id)
+      db.prepare("SELECT id, username, role, disabled, must_change_password, last_login, created_at, updated_at FROM users WHERE id = ?").get(id)
     );
   });
 
@@ -91,6 +92,10 @@ export async function usersRoutes(app: FastifyInstance) {
     if (password) {
       updates.push("password_hash = ?");
       params.push(hashPassword(password));
+      // Admin resetting another user's password forces them to change it on next login
+      if (id !== req.user!.id) {
+        updates.push("must_change_password = 1");
+      }
     }
     if (role && validRoles.includes(role)) {
       updates.push("role = ?");
@@ -108,7 +113,8 @@ export async function usersRoutes(app: FastifyInstance) {
     params.push(Date.now(), id);
 
     db.prepare(`UPDATE users SET ${updates.join(", ")} WHERE id = ?`).run(...params);
-    return db.prepare("SELECT id, username, role, disabled, last_login, created_at, updated_at FROM users WHERE id = ?").get(id);
+    req.log.info({ actor: req.user!.username, target: user.username, fields: updates, event: "user_updated" }, "Admin updated user");
+    return db.prepare("SELECT id, username, role, disabled, must_change_password, last_login, created_at, updated_at FROM users WHERE id = ?").get(id);
   });
 
   // Delete user (admin only, cannot delete self)
@@ -117,9 +123,10 @@ export async function usersRoutes(app: FastifyInstance) {
     if (id === req.user!.id) {
       return reply.status(400).send({ error: "Cannot delete your own account" });
     }
-    const user = db.prepare("SELECT id FROM users WHERE id = ?").get(id);
+    const user = db.prepare("SELECT id, username FROM users WHERE id = ?").get(id) as { id: string; username: string } | undefined;
     if (!user) return reply.status(404).send({ error: "Not found" });
     db.prepare("DELETE FROM users WHERE id = ?").run(id);
+    req.log.info({ actor: req.user!.username, target: user.username, event: "user_deleted" }, "Admin deleted user");
     return reply.status(204).send();
   });
 }

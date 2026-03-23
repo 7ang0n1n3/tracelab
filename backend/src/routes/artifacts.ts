@@ -65,9 +65,19 @@ export async function artifactsRoutes(app: FastifyInstance) {
       ".mp4": "video/mp4",
       ".webm": "video/webm",
       ".zip": "application/zip",
-      ".html": "text/html",
+      ".txt": "text/plain",
+      ".json": "application/json",
+      ".js": "text/plain", // served as plain text to prevent execution
     };
-    reply.header("Content-Type", mimeTypes[ext] || "application/octet-stream");
+    if (!mimeTypes[ext]) {
+      return reply.status(403).send({ error: "File type not allowed" });
+    }
+    // Force download for non-image types to prevent in-browser execution
+    const inlineTypes = new Set([".png", ".jpg", ".jpeg", ".mp4", ".webm"]);
+    if (!inlineTypes.has(ext)) {
+      reply.header("Content-Disposition", `attachment; filename="${safeName}"`);
+    }
+    reply.header("Content-Type", mimeTypes[ext]);
     return reply.send(fs.createReadStream(filePath));
   });
 
@@ -131,13 +141,13 @@ export async function artifactsRoutes(app: FastifyInstance) {
 
       // Zip artifacts directly from their directory (no copy)
       if (fs.existsSync(artifactDir) && fs.readdirSync(artifactDir).length > 0) {
-        const result = spawnSync("zip", ["-r", zipPath, "."], { cwd: artifactDir, timeout: 60000 });
+        const result = spawnSync("/usr/bin/zip", ["-r", zipPath, "."], { cwd: artifactDir, timeout: 60000 });
         if (result.status !== 0) throw new Error(`zip artifacts failed: ${result.stderr?.toString()}`);
       }
 
       // Add metadata files to the zip (or create zip if no artifacts)
       const metaFiles = ["run-info.json", ...(run.log ? ["log.txt"] : []), ...(test?.script ? ["script.js"] : [])];
-      const result = spawnSync("zip", [zipPath, ...metaFiles], { cwd: tmpDir, timeout: 10000 });
+      const result = spawnSync("/usr/bin/zip", [zipPath, ...metaFiles], { cwd: tmpDir, timeout: 10000 });
       if (result.status !== 0) throw new Error(`zip metadata failed: ${result.stderr?.toString()}`);
 
       reply.header("Content-Type", "application/zip");

@@ -14,6 +14,9 @@ const ARTIFACTS_PATH = process.env.ARTIFACTS_PATH || "./data/artifacts";
 
 const app = Fastify({ logger: true });
 
+// Only one VNC session can bind to :99/:5900/NOVNC_PORT at a time
+let vncInUse = false;
+
 // Track active auth recording sessions
 const recordingSessions: Map<string, { close: () => Promise<void> }> = new Map();
 
@@ -24,6 +27,8 @@ const codegenSessions: Map<string, { proc: ChildProcess; outputFile: string }> =
 const vncProcesses: Map<string, { x11vnc: ChildProcess; websockify: ChildProcess }> = new Map();
 
 function startVnc(sessionId: string): Promise<void> {
+  if (vncInUse) return Promise.reject(new Error("VNC is already in use by another session"));
+  vncInUse = true;
   return new Promise((resolve) => {
     const x11vnc = spawn("x11vnc", [
       "-display", ":99",
@@ -53,6 +58,7 @@ function stopVnc(sessionId: string) {
     procs.websockify.kill("SIGTERM");
     procs.x11vnc.kill("SIGTERM");
     vncProcesses.delete(sessionId);
+    vncInUse = false;
   }
 }
 
@@ -163,7 +169,13 @@ async function main() {
     if (!session) {
       return reply.status(404).send({ error: "No active recording session" });
     }
-    await session.close();
+    // Delete from map before closing to prevent double-close on concurrent requests
+    recordingSessions.delete(body.authStateId);
+    try {
+      await session.close();
+    } catch (err: any) {
+      return reply.status(500).send({ error: "Failed to finish recording" });
+    }
     return reply.send({ success: true });
   });
 

@@ -80,6 +80,7 @@ export function initSchema() {
 
   try { db.exec("ALTER TABLE users ADD COLUMN disabled INTEGER NOT NULL DEFAULT 0"); } catch {}
   try { db.exec("ALTER TABLE users ADD COLUMN last_login INTEGER"); } catch {}
+  try { db.exec("ALTER TABLE users ADD COLUMN must_change_password INTEGER NOT NULL DEFAULT 0"); } catch {}
   try { db.exec("ALTER TABLE runs ADD COLUMN vnc_port INTEGER"); } catch {}
   try { db.exec("ALTER TABLE tests ADD COLUMN headless INTEGER"); } catch {}
 
@@ -126,16 +127,17 @@ export function initSchema() {
     const now = Date.now();
     const adminId = crypto.randomUUID();
     db.prepare(
-      "INSERT INTO users (id, username, password_hash, role, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)"
+      "INSERT INTO users (id, username, password_hash, role, must_change_password, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)"
     ).run(
       adminId,
       "sysadmin",
       hashPassword("qazxsw"),
       "admin",
+      1, // force password change on first login
       now,
       now
     );
-    console.log("[TraceLab] Default admin user created: sysadmin / qazxsw");
+    console.log("[TraceLab] Default admin user created: sysadmin (password change required on first login)");
 
     // Seed sample test owned by the admin
     db.prepare(

@@ -1,7 +1,7 @@
 import { FastifyInstance } from "fastify";
 import db from "../db/client";
 import { User } from "../types";
-import { verifyPassword, createSession, deleteSession } from "../auth/session";
+import { verifyPassword, hashPassword, createSession, deleteSession } from "../auth/session";
 import { requireAuth } from "../auth/middleware";
 
 // In-memory rate limiter: 5 failures per IP within 15 minutes triggers lockout
@@ -62,7 +62,7 @@ export async function authRoutes(app: FastifyInstance) {
     const token = createSession(user.id); // also invalidates any prior sessions for this user
     app.log.info({ ip, username: user.username, role: user.role, event: "login_success" }, "User logged in");
     reply.header("Set-Cookie", `tracelab_session=${token}; ${COOKIE_OPTS}`);
-    return { id: user.id, username: user.username, role: user.role };
+    return { id: user.id, username: user.username, role: user.role, must_change_password: user.must_change_password === 1 };
   });
 
   // Logout
@@ -80,5 +80,31 @@ export async function authRoutes(app: FastifyInstance) {
   // Current user
   app.get("/api/auth/me", { preHandler: requireAuth }, async (req) => {
     return req.user;
+  });
+
+  // Change password (requires current session)
+  app.post("/api/auth/change-password", { preHandler: requireAuth }, async (req, reply) => {
+    const { currentPassword, newPassword } = req.body as { currentPassword?: string; newPassword?: string };
+    if (!currentPassword || !newPassword) {
+      return reply.status(400).send({ error: "Current and new password required" });
+    }
+    if (newPassword.length < 8) {
+      return reply.status(400).send({ error: "New password must be at least 8 characters" });
+    }
+
+    const user = db.prepare("SELECT * FROM users WHERE id = ?").get(req.user!.id) as User | undefined;
+    if (!user || !verifyPassword(currentPassword, user.password_hash)) {
+      return reply.status(401).send({ error: "Current password is incorrect" });
+    }
+
+    const now = Date.now();
+    db.prepare("UPDATE users SET password_hash = ?, must_change_password = 0, updated_at = ? WHERE id = ?")
+      .run(hashPassword(newPassword), now, req.user!.id);
+
+    // Re-issue session to invalidate the old one
+    const token = createSession(req.user!.id);
+    reply.header("Set-Cookie", `tracelab_session=${token}; ${COOKIE_OPTS}`);
+    app.log.info({ username: req.user!.username, event: "password_changed" }, "User changed password");
+    return { ok: true };
   });
 }

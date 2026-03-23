@@ -4,6 +4,7 @@ export interface User {
   password_hash: string;
   role: "admin" | "dev" | "qa";
   disabled: number; // 0 = active, 1 = disabled
+  must_change_password: number; // 0 = no, 1 = yes
   last_login: number | null;
   created_at: number;
   updated_at: number;

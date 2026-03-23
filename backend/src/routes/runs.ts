@@ -4,6 +4,13 @@ import fs from "fs";
 import db from "../db/client";
 import { Run, Test } from "../types";
 import { requireAuth } from "../auth/middleware";
+import { getSessionUser } from "../auth/session";
+
+function parseSessionToken(cookieHeader: string | undefined): string | undefined {
+  if (!cookieHeader) return undefined;
+  const pair = cookieHeader.split(";").map((c) => c.trim()).find((c) => c.startsWith("tracelab_session="));
+  return pair ? pair.slice("tracelab_session=".length) : undefined;
+}
 
 const ARTIFACTS_PATH = process.env.ARTIFACTS_PATH || "./data/artifacts";
 
@@ -88,13 +95,22 @@ export async function runsRoutes(app: FastifyInstance) {
     reply.raw.setHeader("Content-Type", "text/event-stream");
     reply.raw.setHeader("Cache-Control", "no-cache");
     reply.raw.setHeader("Connection", "keep-alive");
-    reply.raw.setHeader("Access-Control-Allow-Origin", "*");
+
+    const sessionToken = parseSessionToken(req.headers.cookie);
 
     const send = (data: string) => {
       reply.raw.write(`data: ${JSON.stringify({ log: data })}\n\n`);
     };
 
     const interval = setInterval(() => {
+      // Re-validate session on each tick so logged-out users are kicked off
+      if (!sessionToken || !getSessionUser(sessionToken)) {
+        reply.raw.write("data: __unauthorized__\n\n");
+        clearInterval(interval);
+        reply.raw.end();
+        return;
+      }
+
       const current = db
         .prepare("SELECT status, log FROM runs WHERE id = ?")
         .get(id) as Pick<Run, "status" | "log"> | undefined;

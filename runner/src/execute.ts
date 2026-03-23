@@ -94,14 +94,15 @@ export async function executeScript(opts: ExecuteOptions): Promise<ExecuteResult
 
     log("Running test script...");
 
-    if (script.length > 512 * 1024) {
-      throw new Error("Script exceeds maximum allowed size (512KB)");
+    if (script.length > 100 * 1024) {
+      throw new Error("Script exceeds maximum allowed size (100KB)");
     }
 
     // Run in a vm context to restrict direct access to Node.js globals
     // (require, process, __dirname, etc. are not available in the sandbox)
     const sandbox = vm.createContext({ page, context, browser, takeScreenshot, log, baseUrl: opts.baseUrl });
-    const promise = vm.runInContext(`(async () => { ${script} })()`, sandbox, { displayErrors: true });
+    // timeout applies to synchronous code only — Playwright's own timeout handles async operations
+    const promise = vm.runInContext(`(async () => { ${script} })()`, sandbox, { displayErrors: true, timeout: 5000 });
     await promise;
 
     if (config.captureScreenshots && screenshotPaths.length === 0) {
