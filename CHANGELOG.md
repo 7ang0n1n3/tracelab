@@ -6,6 +6,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [0.1.12] — 2026-03-23
+
+### Changed
+- `.env.example` updated to document all environment variables: `NOVNC_PORT`, `RUNNER_SECRET` (shared secret for backend→runner auth), and `HTTPS_ONLY` (enables Secure cookie flag behind TLS)
+
+---
+
 ## [0.1.11] — 2026-03-23
 
 ### Fixed
