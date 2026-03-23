@@ -15,15 +15,17 @@ import {
   LogOut,
   Sun,
   Moon,
+  ListOrdered,
 } from "lucide-react";
 import { useTheme } from "@/context/ThemeContext";
 
 const nav = [
-  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/tests",     label: "Tests",     icon: FlaskConical },
+  { href: "/dashboard", label: "Dashboard",    icon: LayoutDashboard },
+  { href: "/tests",     label: "Tests",        icon: FlaskConical },
+  { href: "/queue",     label: "Run Queue",    icon: ListOrdered },
   { href: "/runs",      label: "Test Results", icon: PlayCircle },
-  { href: "/auth",      label: "Auth States", icon: KeyRound },
-  { href: "/settings",  label: "Settings",  icon: Settings },
+  { href: "/auth",      label: "Auth States",  icon: KeyRound },
+  { href: "/settings",  label: "Settings",     icon: Settings },
 ];
 
 const adminNav = [
@@ -35,6 +37,7 @@ export function Sidebar() {
   const router = useRouter();
   const { theme, toggleTheme } = useTheme();
   const [user, setUser] = useState<{ username: string; role: string } | null>(null);
+  const [queueCount, setQueueCount] = useState(0);
 
   useEffect(() => {
     fetch("/api/auth/me", { credentials: "include" })
@@ -44,6 +47,18 @@ export function Sidebar() {
       })
       .then((u) => setUser(u))
       .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    function pollQueue() {
+      fetch("/api/runs?status=pending,running&limit=200", { credentials: "include" })
+        .then((r) => r.ok ? r.json() : [])
+        .then((runs: any[]) => setQueueCount(Array.isArray(runs) ? runs.length : 0))
+        .catch(() => {});
+    }
+    pollQueue();
+    const id = setInterval(pollQueue, 5000);
+    return () => clearInterval(id);
   }, []);
 
   async function handleLogout() {
@@ -58,13 +73,14 @@ export function Sidebar() {
       {/* Logo */}
       <div className="flex flex-col items-center justify-center px-4 py-4 border-b border-border gap-1">
         <Image src="/tracelab_logo.png" alt="TraceLab" width={70} height={20} style={{ objectFit: "contain" }} />
-        <span className="text-[10px] text-muted">v0.1.12</span>
+        <span className="text-[10px] text-muted">v0.1.13</span>
       </div>
 
       {/* Nav */}
       <nav className="flex-1 px-3 py-4 space-y-1">
         {allNav.map(({ href, label, icon: Icon }) => {
           const active = pathname === href || pathname.startsWith(href + "/");
+          const isQueue = href === "/queue";
           return (
             <Link
               key={href}
@@ -77,7 +93,12 @@ export function Sidebar() {
               )}
             >
               <Icon size={15} />
-              {label}
+              <span className="flex-1">{label}</span>
+              {isQueue && queueCount > 0 && (
+                <span className="text-xs font-mono px-1.5 py-0.5 rounded-full bg-blue-500/20 border border-blue-500/40 text-blue-400 leading-none">
+                  {queueCount}
+                </span>
+              )}
             </Link>
           );
         })}

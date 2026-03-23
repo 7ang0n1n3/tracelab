@@ -6,6 +6,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [0.1.13] — 2026-03-23
+
+### Added
+- **Retry on failure** — configurable auto-retry on failed or errored runs; system-wide default (`retryCount` setting, 0 = disabled) with per-test override (0–10 retries); retries are linked via `parent_run_id` and `attempt` counter; retry attempts show an `↺ N` badge in the runs list and run detail page; chain triggers fire only after all retries are exhausted
+- **Run queue view** — new `/queue` page showing all pending and running tests in real time (2-second polling); displays test name, status badge, live elapsed timer, attempt/chain badges; sidebar shows a live count badge on the "Run Queue" nav item (5-second poll, only visible when queue is non-empty); `GET /api/runs` now accepts comma-separated `status` values (e.g. `?status=pending,running`)
+- **Dependency chaining** — tests can be linked into unlimited sequential chains (A→B→C→D); when a run finishes, outgoing chain links are checked and downstream tests are triggered automatically; per-link `continue_on_failure` toggle controls whether the chain proceeds on failure or stops; cycle detection (BFS) blocks circular links at creation time; chained runs carry `chain_run_id` (anchored to the first run in the chain) and `triggered_by_run_id`; chain badge (`⛓`) shown in runs list and queue; run detail page shows "Triggered by" and "Triggered next" links; `ChainPanel` on the test detail page auto-saves immediately with a transient "Saved" confirmation
+
+### Changed
+- Test detail page override grid expanded from 3 to 4 columns to accommodate the new per-test retry override selector
+
+---
+
 ## [0.1.12] — 2026-03-23
 
 ### Changed

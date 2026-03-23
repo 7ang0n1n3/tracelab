@@ -3,7 +3,7 @@ import db from "../db/client";
 import { requireAuth, requireAdmin } from "../auth/middleware";
 
 // Only expose and allow writes to these keys — prevents tampering with session_secret or other internals
-const ALLOWED_KEYS = new Set(["headless", "slowMo", "timeout", "captureScreenshots", "captureVideo", "captureTrace", "defaultBrowser"]);
+const ALLOWED_KEYS = new Set(["headless", "slowMo", "timeout", "captureScreenshots", "captureVideo", "captureTrace", "defaultBrowser", "retryCount"]);
 const VALID_BROWSERS = new Set(["chromium", "firefox", "webkit"]);
 
 export async function settingsRoutes(app: FastifyInstance) {

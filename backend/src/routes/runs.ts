@@ -32,18 +32,35 @@ function canAccessTest(userId: string, userRole: string, testId: string): boolea
 export async function runsRoutes(app: FastifyInstance) {
   // List runs
   app.get("/api/runs", { preHandler: requireAuth }, async (req) => {
-    const { test_id, status, limit = "50" } = req.query as Record<string, string>;
+    const { test_id, status, limit = "50", triggered_by } = req.query as Record<string, string>;
     const limitNum = Math.min(Math.max(parseInt(limit, 10) || 50, 1), 1000);
     const isAdmin = req.user!.role === "admin";
 
     let query: string;
     const params: (string | number)[] = [];
 
+    const VALID_STATUSES = new Set(["pending", "running", "passed", "failed", "error"]);
+    const statusFilter = status
+      ? status.split(",").map((s) => s.trim()).filter((s) => VALID_STATUSES.has(s))
+      : [];
+
+    function applyStatusFilter(q: string, p: (string | number)[]): string {
+      if (statusFilter.length === 0) return q;
+      if (statusFilter.length === 1) { p.push(statusFilter[0]); return q + " AND status = ?"; }
+      statusFilter.forEach((s) => p.push(s));
+      return q + ` AND status IN (${statusFilter.map(() => "?").join(",")})`;
+    }
+
     if (isAdmin) {
       query = "SELECT runs.* FROM runs";
       const conditions: string[] = [];
       if (test_id) { conditions.push("test_id = ?"); params.push(test_id); }
-      if (status) { conditions.push("status = ?"); params.push(status); }
+      if (triggered_by) { conditions.push("triggered_by_run_id = ?"); params.push(triggered_by); }
+      if (statusFilter.length === 1) { conditions.push("status = ?"); params.push(statusFilter[0]); }
+      else if (statusFilter.length > 1) {
+        statusFilter.forEach((s) => params.push(s));
+        conditions.push(`status IN (${statusFilter.map(() => "?").join(",")})`);
+      }
       if (conditions.length) query += " WHERE " + conditions.join(" AND ");
     } else {
       query = `SELECT runs.* FROM runs INNER JOIN tests ON runs.test_id = tests.id
@@ -55,7 +72,8 @@ export async function runsRoutes(app: FastifyInstance) {
         ))`;
       params.push(req.user!.id, req.user!.id, req.user!.role);
       if (test_id) { query += " AND runs.test_id = ?"; params.push(test_id); }
-      if (status) { query += " AND runs.status = ?"; params.push(status); }
+      if (triggered_by) { query += " AND runs.triggered_by_run_id = ?"; params.push(triggered_by); }
+      query = applyStatusFilter(query, params);
     }
     query += " ORDER BY runs.created_at DESC LIMIT ?";
     params.push(limitNum);

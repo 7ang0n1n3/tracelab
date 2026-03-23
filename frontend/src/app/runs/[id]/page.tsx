@@ -115,6 +115,8 @@ export default function RunDetailPage() {
   const router = useRouter();
   const [run, setRun] = useState<any>(null);
   const [test, setTest] = useState<any>(null);
+  const [triggeredRuns, setTriggeredRuns] = useState<any[]>([]);
+  const [chainTests, setChainTests] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [liveLog, setLiveLog] = useState<string>("");
   const [lightbox, setLightbox] = useState<string | null>(null);
@@ -136,6 +138,18 @@ export default function RunDetailPage() {
         setVideos(files.filter((f: { name: string; url: string }) =>
           f.name.endsWith(".webm") || f.name.endsWith(".mp4")
         ));
+      }).catch(() => {});
+      // Load runs triggered by this one (chain children)
+      api.runs.list({ triggered_by: id, limit: "50" }).then(async (triggered: any[]) => {
+        setTriggeredRuns(triggered);
+        if (triggered.length > 0) {
+          const testIds = [...new Set(triggered.map((tr: any) => tr.test_id))];
+          const names: Record<string, string> = {};
+          await Promise.all(testIds.map((tid) =>
+            api.tests.get(tid as string).then((t: any) => { names[tid as string] = t.name; }).catch(() => {})
+          ));
+          setChainTests(names);
+        }
       }).catch(() => {});
     } finally {
       setLoading(false);
@@ -268,6 +282,56 @@ export default function RunDetailPage() {
           </div>
         ))}
       </div>
+
+      {/* Retry context */}
+      {run.attempt > 1 && (
+        <div className="flex items-center gap-3 text-sm text-yellow-400 bg-yellow-900/20 border border-yellow-700/30 rounded-lg px-4 py-2.5">
+          <span className="font-mono">↺ Attempt {run.attempt}</span>
+          {run.parent_run_id && (
+            <Link href={`/runs/${run.parent_run_id}`} className="text-xs text-accent-bright hover:underline ml-auto">
+              View first attempt →
+            </Link>
+          )}
+        </div>
+      )}
+
+      {/* Chain context */}
+      {(run.triggered_by_run_id || triggeredRuns.length > 0) && (
+        <div className="bg-bg-surface border border-border rounded-lg overflow-hidden">
+          <div className="px-4 py-2.5 border-b border-border text-xs text-muted flex items-center gap-2">
+            <span className="text-purple-400">⛓</span>
+            Chain
+          </div>
+          <div className="px-4 py-3 space-y-2">
+            {run.triggered_by_run_id && (
+              <div className="flex items-center gap-2 text-sm">
+                <span className="text-muted text-xs">Triggered by</span>
+                <Link href={`/runs/${run.triggered_by_run_id}`} className="text-xs text-accent-bright hover:underline font-mono">
+                  {run.triggered_by_run_id.slice(0, 8)}… →
+                </Link>
+              </div>
+            )}
+            {triggeredRuns.length > 0 && (
+              <div className="space-y-1.5">
+                <div className="text-xs text-muted">Triggered next</div>
+                {triggeredRuns.map((tr: any) => (
+                  <div key={tr.id} className="flex items-center gap-2">
+                    <span className={`inline-block w-1.5 h-1.5 rounded-full shrink-0 ${
+                      tr.status === "passed" ? "bg-green-400" :
+                      tr.status === "failed" || tr.status === "error" ? "bg-red-400" :
+                      tr.status === "running" ? "bg-blue-400" : "bg-zinc-500"
+                    }`} />
+                    <span className="text-xs text-slate-300 truncate">{chainTests[tr.test_id] ?? tr.test_id}</span>
+                    <Link href={`/runs/${tr.id}`} className="text-xs text-accent-bright hover:underline ml-auto shrink-0">
+                      View →
+                    </Link>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Error */}
       {run.error_message && (

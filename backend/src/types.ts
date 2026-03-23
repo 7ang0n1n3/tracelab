@@ -31,6 +31,7 @@ export interface Test {
   browser: "chromium" | "firefox" | "webkit" | null; // null = use system default
   capture_video: number | null; // null = use system default, 0 = off, 1 = on
   headless: number | null; // null = use system default, 0 = off, 1 = on
+  retry_count: number | null; // null = use system default
   created_at: number;
   updated_at: number;
 }
@@ -46,6 +47,18 @@ export interface Run {
   log: string | null;
   artifact_path: string | null;
   error_message: string | null;
+  attempt: number; // 1-based, increments on retry
+  parent_run_id: string | null; // set on retry attempts, points to first run
+  chain_run_id: string | null; // all chain-triggered runs share the first run's ID
+  triggered_by_run_id: string | null; // which run directly triggered this one
+  created_at: number;
+}
+
+export interface ChainLink {
+  id: string;
+  from_test_id: string;
+  to_test_id: string;
+  continue_on_failure: number; // 0 or 1
   created_at: number;
 }
 

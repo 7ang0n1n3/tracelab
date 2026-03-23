@@ -81,7 +81,19 @@ export default function RunsPage() {
               {runs.map((run) => (
                 <tr key={run.id} className="border-b border-border/50 hover:bg-bg-elevated transition-colors">
                   <td className="px-4 py-2.5 text-slate-300">
-                    {tests[run.test_id]?.name ?? <span className="text-muted italic">Deleted</span>}
+                    <div className="flex items-center gap-2">
+                      {tests[run.test_id]?.name ?? <span className="text-muted italic">Deleted</span>}
+                      {run.attempt > 1 && (
+                        <span className="text-xs px-1.5 py-0.5 rounded bg-yellow-900/40 border border-yellow-700/40 text-yellow-400 font-mono">
+                          ↺ {run.attempt}
+                        </span>
+                      )}
+                      {run.triggered_by_run_id && (
+                        <span className="text-xs px-1.5 py-0.5 rounded bg-purple-900/40 border border-purple-700/40 text-purple-400 font-mono">
+                          ⛓ chain
+                        </span>
+                      )}
+                    </div>
                   </td>
                   <td className="px-4 py-2.5"><StatusBadge status={run.status} /></td>
                   <td className="px-4 py-2.5 text-muted font-mono text-xs">

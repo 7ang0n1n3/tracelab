@@ -83,6 +83,23 @@ export function initSchema() {
   try { db.exec("ALTER TABLE users ADD COLUMN must_change_password INTEGER NOT NULL DEFAULT 0"); } catch {}
   try { db.exec("ALTER TABLE runs ADD COLUMN vnc_port INTEGER"); } catch {}
   try { db.exec("ALTER TABLE tests ADD COLUMN headless INTEGER"); } catch {}
+  try { db.exec("ALTER TABLE tests ADD COLUMN retry_count INTEGER"); } catch {}
+  try { db.exec("ALTER TABLE runs ADD COLUMN attempt INTEGER NOT NULL DEFAULT 1"); } catch {}
+  try { db.exec("ALTER TABLE runs ADD COLUMN parent_run_id TEXT"); } catch {}
+  try { db.exec("ALTER TABLE runs ADD COLUMN chain_run_id TEXT"); } catch {}
+  try { db.exec("ALTER TABLE runs ADD COLUMN triggered_by_run_id TEXT"); } catch {}
+
+  // Chain links table
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS chain_links (
+      id TEXT PRIMARY KEY,
+      from_test_id TEXT NOT NULL REFERENCES tests(id) ON DELETE CASCADE,
+      to_test_id TEXT NOT NULL REFERENCES tests(id) ON DELETE CASCADE,
+      continue_on_failure INTEGER NOT NULL DEFAULT 0,
+      created_at INTEGER NOT NULL,
+      UNIQUE(from_test_id, to_test_id)
+    );
+  `);
 
   // Test shares table
   db.exec(`
@@ -106,6 +123,7 @@ export function initSchema() {
     captureVideo: "false",
     captureTrace: "false",
     defaultBrowser: "chromium",
+    retryCount: "0",
   };
   const insertSetting = db.prepare("INSERT OR IGNORE INTO settings (key, value) VALUES (?, ?)");
   for (const [key, value] of Object.entries(defaults)) {

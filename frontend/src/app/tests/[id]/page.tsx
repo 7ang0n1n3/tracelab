@@ -13,6 +13,7 @@ import { ArrowLeft, Play, Save, Trash2, Copy } from "lucide-react";
 import { useTheme } from "@/context/ThemeContext";
 import { SharesPanel } from "@/components/test/SharesPanel";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { ChainPanel } from "@/components/test/ChainPanel";
 
 const MonacoEditor = dynamic(() => import("@monaco-editor/react"), { ssr: false });
 
@@ -42,6 +43,7 @@ export default function TestDetailPage() {
   const [browser, setBrowser] = useState<string>("");
   const [captureVideo, setCaptureVideo] = useState<string>("");
   const [headless, setHeadless] = useState<string>("");
+  const [retryCount, setRetryCount] = useState<string>("");
 
   async function load() {
     setLoading(true);
@@ -64,6 +66,7 @@ export default function TestDetailPage() {
       setBrowser(t.browser ?? "");
       setCaptureVideo(t.capture_video === null || t.capture_video === undefined ? "" : t.capture_video === 1 ? "true" : "false");
       setHeadless(t.headless === null || t.headless === undefined ? "" : t.headless === 1 ? "true" : "false");
+      setRetryCount(t.retry_count === null || t.retry_count === undefined ? "" : String(t.retry_count));
       // Parse tags from JSON array to comma string
       try {
         const parsed = JSON.parse(t.tags || "[]");
@@ -91,6 +94,7 @@ export default function TestDetailPage() {
         browser: browser || null,
         capture_video: captureVideo === "" ? null : captureVideo === "true" ? 1 : 0,
         headless: headless === "" ? null : headless === "true" ? 1 : 0,
+        retry_count: retryCount === "" ? null : parseInt(retryCount, 10),
       });
       setDirty(false);
     } catch (e: any) {
@@ -208,7 +212,7 @@ export default function TestDetailPage() {
               className={`w-full bg-bg-elevated border border-border rounded px-3 py-2 text-sm text-slate-200 placeholder:text-muted focus:outline-none focus:border-accent${isReadOnly ? " opacity-60 cursor-default" : ""}`} />
           </div>
         </div>
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-4 gap-4">
           <div>
             <label className="block text-xs text-muted mb-1">Browser <span className="text-muted/60">(overrides system default)</span></label>
             <select value={browser} disabled={isReadOnly} onChange={(e) => { setBrowser(e.target.value); markDirty(); }}
@@ -235,6 +239,18 @@ export default function TestDetailPage() {
               <option value="">System default</option>
               <option value="true">On</option>
               <option value="false">Off</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-xs text-muted mb-1">Retry on Failure <span className="text-muted/60">(overrides system default)</span></label>
+            <select value={retryCount} disabled={isReadOnly} onChange={(e) => { setRetryCount(e.target.value); markDirty(); }}
+              className={`w-full bg-bg-elevated border border-border rounded px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-accent${isReadOnly ? " opacity-60 cursor-default" : ""}`}>
+              <option value="">System default</option>
+              <option value="0">0 — disabled</option>
+              <option value="1">1 retry</option>
+              <option value="2">2 retries</option>
+              <option value="3">3 retries</option>
+              <option value="5">5 retries</option>
             </select>
           </div>
         </div>
@@ -294,6 +310,9 @@ export default function TestDetailPage() {
           }}
         />
       </div>
+
+      {/* Chain */}
+      <ChainPanel testId={id} readOnly={isReadOnly} />
 
       {/* Sharing */}
       {canShare && <SharesPanel testId={id} />}

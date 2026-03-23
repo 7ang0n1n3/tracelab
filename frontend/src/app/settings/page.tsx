@@ -137,6 +137,16 @@ export default function SettingsPage() {
               after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all"></div>
           </label>
         </div>
+
+        {/* Retry on failure */}
+        <div className="px-5 py-4">
+          <div className="text-sm text-slate-200 mb-1">Retry on Failure</div>
+          <div className="text-xs text-muted mb-2">Number of automatic retries when a run fails or errors (0 = disabled)</div>
+          <input type="number" min="0" max="10" step="1"
+            value={settings.retryCount ?? "0"}
+            onChange={(e) => set("retryCount", e.target.value)}
+            className="w-24 bg-bg-elevated border border-border rounded px-3 py-1.5 text-sm text-slate-200 focus:outline-none focus:border-accent" />
+        </div>
       </div>
     </div>
   );

@@ -93,6 +93,16 @@ export const api = {
       apiFetch<{ ok: boolean }>("/auth/change-password", { method: "POST", body: JSON.stringify(data) }),
   },
 
+  // Chain links
+  chain: {
+    get: (testId: string) => apiFetch<{ outgoing: any[]; incoming: any[] }>(`/tests/${testId}/chain`),
+    add: (data: { from_test_id: string; to_test_id: string; continue_on_failure?: number }) =>
+      apiFetch<any>("/chain-links", { method: "POST", body: JSON.stringify(data) }),
+    patch: (id: string, data: { continue_on_failure: number }) =>
+      apiFetch<any>(`/chain-links/${id}`, { method: "PATCH", body: JSON.stringify(data) }),
+    remove: (id: string) => apiFetch<void>(`/chain-links/${id}`, { method: "DELETE" }),
+  },
+
   // Artifacts
   artifacts: {
     screenshots: (runId: string) => apiFetch<any[]>(`/artifacts/${runId}/screenshots`),
