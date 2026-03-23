@@ -6,6 +6,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [0.1.11] — 2026-03-23
+
+### Fixed
+- Auth recording (and codegen) failed after any container restart — Xvfb refused to start because `/tmp/.X99-lock` survived in the container's writable layer; runner startup now removes the stale lock before launching Xvfb
+
+---
+
 ## [0.1.10] — 2026-03-23
 
 ### Security
