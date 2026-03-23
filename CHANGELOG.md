@@ -6,6 +6,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [0.1.10] — 2026-03-23
+
+### Security
+- Clamp `?limit` on run list queries to 1–1000 (prevented integer overflow / unbounded DB scan)
+- Admin password reset now immediately invalidates the target user's active sessions
+- Runner shared-secret authentication — `RUNNER_SECRET` env var; backend passes `Authorization: Bearer` header on all runner calls; runner rejects requests without it when the secret is configured
+- Orphaned tests (`user_id = NULL` after owner deletion) are now admin-only; non-admin queries no longer include `OR user_id IS NULL`
+- SSE `__unauthorized__` signal now closes the stream and redirects to `/login` instead of being silently swallowed
+- Batch user `IN`-clause lookups in test-shares list endpoint (chunks of 100) to stay within SQLite parameter limits
+- Replaced `dangerouslySetInnerHTML` theme script with an external `/theme.js` static file
+
+---
+
 ## [0.1.9] — 2026-03-23
 
 ### Fixed
