@@ -16,5 +16,5 @@ COPY src ./src
 
 RUN npm run build
 
-# Start Xvfb on display :99 then run the runner
-CMD Xvfb :99 -screen 0 1280x720x24 & node dist/index.js
+# Remove stale Xvfb lock (survives container restarts), then start Xvfb and the runner
+CMD rm -f /tmp/.X99-lock && Xvfb :99 -screen 0 1280x720x24 & node dist/index.js
