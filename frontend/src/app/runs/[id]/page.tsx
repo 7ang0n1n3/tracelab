@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { format } from "date-fns";
 import { api } from "@/lib/api";
@@ -112,6 +112,7 @@ function RunningOverlay({ elapsed }: { elapsed: number }) {
 
 export default function RunDetailPage() {
   const { id } = useParams<{ id: string }>();
+  const router = useRouter();
   const [run, setRun] = useState<any>(null);
   const [test, setTest] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -154,6 +155,12 @@ export default function RunDetailPage() {
         api.artifacts.list(id).then(({ files }: { files: { name: string; url: string }[] }) => {
           setVideos(files.filter((f: { name: string; url: string }) => f.name.endsWith(".webm") || f.name.endsWith(".mp4")));
         }).catch(() => {});
+        return;
+      }
+      if (event.data === "__unauthorized__") {
+        es.close();
+        esRef.current = null;
+        router.push("/login");
         return;
       }
       try {

@@ -6,6 +6,11 @@ import { Test, RunConfig, RunResult, AuthState } from "../types";
 const RUNNER_URL = process.env.RUNNER_URL || "http://runner:5000";
 const ARTIFACTS_PATH = process.env.ARTIFACTS_PATH || "./data/artifacts";
 const RUNNER_NOVNC_PORT = parseInt(process.env.RUNNER_NOVNC_PORT || "6080", 10);
+const RUNNER_SECRET = process.env.RUNNER_SECRET || "";
+
+function runnerHeaders(): Record<string, string> {
+  return RUNNER_SECRET ? { Authorization: `Bearer ${RUNNER_SECRET}` } : {};
+}
 
 function getSettings(): RunConfig & { defaultBrowser: "chromium" | "firefox" | "webkit" } {
   const rows = db.prepare("SELECT key, value FROM settings").all() as { key: string; value: string }[];
@@ -57,7 +62,7 @@ export async function dispatchRun(runId: string, test: Test) {
   // then write vnc_port to the DB so the frontend only shows the iframe once connectable
   if (!config.headless) {
     try {
-      await axios.post(`${RUNNER_URL}/execute/vnc-start`, { runId });
+      await axios.post(`${RUNNER_URL}/execute/vnc-start`, { runId }, { headers: runnerHeaders() });
       db.prepare("UPDATE runs SET vnc_port = ? WHERE id = ?").run(RUNNER_NOVNC_PORT, runId);
     } catch {
       // VNC failed to start — continue without it (test still runs headlessly via DISPLAY)
@@ -72,7 +77,7 @@ export async function dispatchRun(runId: string, test: Test) {
       baseUrl: test.base_url,
       authStatePath,
       config,
-    });
+    }, { headers: runnerHeaders() });
 
     const result = response.data;
     db.prepare(`

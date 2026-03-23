@@ -9,6 +9,11 @@ import { requireAuth } from "../auth/middleware";
 
 const AUTH_STATE_PATH = process.env.AUTH_STATE_PATH || "./data/auth";
 const RUNNER_URL = process.env.RUNNER_URL || "http://runner:5000";
+const RUNNER_SECRET = process.env.RUNNER_SECRET || "";
+
+function runnerHeaders(): Record<string, string> {
+  return RUNNER_SECRET ? { Authorization: `Bearer ${RUNNER_SECRET}` } : {};
+}
 
 function canAccess(userId: string, role: string, state: AuthState): boolean {
   if (role === "admin") return true;
@@ -86,7 +91,7 @@ export async function authStateRoutes(app: FastifyInstance) {
         authStateId: id,
         outputPath: state.file_path,
         baseUrl: state.base_url,
-      });
+      }, { headers: runnerHeaders() });
       return reply.send(response.data);
     } catch (err: any) {
       return reply.status(502).send({ error: "Runner unavailable" });
@@ -113,7 +118,7 @@ export async function authStateRoutes(app: FastifyInstance) {
         authStateId: id,
         outputPath: state.file_path,
         baseUrl: state.base_url,
-      });
+      }, { headers: runnerHeaders() });
       return reply.send(response.data);
     } catch (err: any) {
       return reply.status(502).send({ error: "Runner unavailable" });
@@ -130,7 +135,7 @@ export async function authStateRoutes(app: FastifyInstance) {
     }
 
     try {
-      const response = await axios.post(`${RUNNER_URL}/record-auth/finish`, { authStateId: id });
+      const response = await axios.post(`${RUNNER_URL}/record-auth/finish`, { authStateId: id }, { headers: runnerHeaders() });
       db.prepare("UPDATE auth_states SET updated_at = ? WHERE id = ?").run(Date.now(), id);
       return reply.send(response.data);
     } catch (err: any) {

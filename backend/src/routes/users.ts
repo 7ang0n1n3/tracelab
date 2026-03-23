@@ -92,9 +92,10 @@ export async function usersRoutes(app: FastifyInstance) {
     if (password) {
       updates.push("password_hash = ?");
       params.push(hashPassword(password));
-      // Admin resetting another user's password forces them to change it on next login
+      // Admin resetting another user's password: force change on next login + kill active sessions
       if (id !== req.user!.id) {
         updates.push("must_change_password = 1");
+        // Sessions deleted after UPDATE to avoid race condition with reads above
       }
     }
     if (role && validRoles.includes(role)) {
@@ -113,6 +114,10 @@ export async function usersRoutes(app: FastifyInstance) {
     params.push(Date.now(), id);
 
     db.prepare(`UPDATE users SET ${updates.join(", ")} WHERE id = ?`).run(...params);
+    // If an admin reset another user's password, kill their active sessions now
+    if (password && id !== req.user!.id) {
+      db.prepare("DELETE FROM sessions WHERE user_id = ?").run(id);
+    }
     req.log.info({ actor: req.user!.username, target: user.username, fields: updates, event: "user_updated" }, "Admin updated user");
     return db.prepare("SELECT id, username, role, disabled, must_change_password, last_login, created_at, updated_at FROM users WHERE id = ?").get(id);
   });

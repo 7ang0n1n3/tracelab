@@ -11,7 +11,8 @@ type AccessLevel = "admin" | "owner" | "write" | "read";
 
 function getTestAccess(test: Test, userId: string, userRole: string): AccessLevel | null {
   if (userRole === "admin") return "admin";
-  if (!test.user_id || test.user_id === userId) return "owner";
+  if (test.user_id === userId) return "owner";
+  if (!test.user_id) return null; // orphaned test (owner deleted) — admin-only
   const share = db.prepare(`
     SELECT permission FROM test_shares
     WHERE test_id = ? AND (
@@ -36,7 +37,7 @@ export async function testsRoutes(app: FastifyInstance) {
     const params: (string | number)[] = [];
 
     if (!isAdmin) {
-      conditions.push(`(user_id = ? OR user_id IS NULL OR EXISTS (
+      conditions.push(`(user_id = ? OR EXISTS (
         SELECT 1 FROM test_shares ts WHERE ts.test_id = tests.id AND (
           (ts.grantee_type = 'user' AND ts.grantee_id = ?) OR
           (ts.grantee_type = 'role' AND ts.grantee_id = ?)

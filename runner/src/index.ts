@@ -64,7 +64,19 @@ function stopVnc(sessionId: string) {
 
 async function main() {
   const BACKEND_URL = process.env.BACKEND_URL || "http://backend:4000";
+  const RUNNER_SECRET = process.env.RUNNER_SECRET || "";
+
   await app.register(cors, { origin: [BACKEND_URL, "http://localhost:4000"] });
+
+  // Shared-secret check — skip /health so Docker health checks still work
+  app.addHook("preValidation", async (req, reply) => {
+    if (req.url === "/health") return;
+    if (!RUNNER_SECRET) return; // not configured — rely on network isolation
+    if (req.headers.authorization !== `Bearer ${RUNNER_SECRET}`) {
+      app.log.warn({ ip: req.ip, url: req.url, event: "runner_auth_fail" }, "Runner auth rejected");
+      return reply.status(401).send({ error: "Unauthorized" });
+    }
+  });
 
   app.get("/health", async () => ({ status: "ok" }));
 

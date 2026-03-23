@@ -8,19 +8,13 @@ export const metadata: Metadata = {
   description: "Internal browser test automation platform",
 };
 
-// Runs before React hydrates — prevents flash of wrong theme
-const themeScript = `
-  try {
-    var t = localStorage.getItem('tracelab-theme');
-    if (t !== 'light') document.documentElement.classList.add('dark');
-  } catch(e) {}
-`;
-
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
-        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+        {/* Runs before React hydrates — prevents flash of wrong theme */}
+        {/* eslint-disable-next-line @next/next/no-sync-scripts */}
+        <script src="/theme.js" />
       </head>
       <body className="flex h-screen overflow-hidden bg-bg font-mono">
         <ThemeProvider>

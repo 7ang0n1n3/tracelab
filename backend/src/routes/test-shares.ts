@@ -10,7 +10,7 @@ const VALID_ROLES = ["admin", "dev", "qa"];
 
 function isOwnerOrAdmin(test: Test, userId: string, userRole: string): boolean {
   if (userRole === "admin") return true;
-  return !test.user_id || test.user_id === userId;
+  return test.user_id === userId;
 }
 
 export async function testSharesRoutes(app: FastifyInstance) {
@@ -33,11 +33,15 @@ export async function testSharesRoutes(app: FastifyInstance) {
       .map((s) => s.grantee_id);
     const usersById: Record<string, string> = {};
     if (userIds.length) {
-      const placeholders = userIds.map(() => "?").join(",");
-      const rows = db
-        .prepare(`SELECT id, username FROM users WHERE id IN (${placeholders})`)
-        .all(...userIds) as { id: string; username: string }[];
-      for (const u of rows) usersById[u.id] = u.username;
+      const BATCH = 100;
+      for (let i = 0; i < userIds.length; i += BATCH) {
+        const chunk = userIds.slice(i, i + BATCH);
+        const placeholders = chunk.map(() => "?").join(",");
+        const rows = db
+          .prepare(`SELECT id, username FROM users WHERE id IN (${placeholders})`)
+          .all(...chunk) as { id: string; username: string }[];
+        for (const u of rows) usersById[u.id] = u.username;
+      }
     }
 
     return shares.map((s) => ({

@@ -18,7 +18,7 @@ function canAccessTest(userId: string, userRole: string, testId: string): boolea
   if (userRole === "admin") return true;
   const test = db.prepare("SELECT user_id FROM tests WHERE id = ?").get(testId) as Pick<Test, "user_id"> | undefined;
   if (!test) return false;
-  if (!test.user_id || test.user_id === userId) return true;
+  if (test.user_id === userId) return true;
   const share = db.prepare(`
     SELECT 1 FROM test_shares
     WHERE test_id = ? AND (
@@ -33,6 +33,7 @@ export async function runsRoutes(app: FastifyInstance) {
   // List runs
   app.get("/api/runs", { preHandler: requireAuth }, async (req) => {
     const { test_id, status, limit = "50" } = req.query as Record<string, string>;
+    const limitNum = Math.min(Math.max(parseInt(limit, 10) || 50, 1), 1000);
     const isAdmin = req.user!.role === "admin";
 
     let query: string;
@@ -46,7 +47,7 @@ export async function runsRoutes(app: FastifyInstance) {
       if (conditions.length) query += " WHERE " + conditions.join(" AND ");
     } else {
       query = `SELECT runs.* FROM runs INNER JOIN tests ON runs.test_id = tests.id
-        WHERE (tests.user_id = ? OR tests.user_id IS NULL OR EXISTS (
+        WHERE (tests.user_id = ? OR EXISTS (
           SELECT 1 FROM test_shares ts WHERE ts.test_id = tests.id AND (
             (ts.grantee_type = 'user' AND ts.grantee_id = ?) OR
             (ts.grantee_type = 'role' AND ts.grantee_id = ?)
@@ -57,7 +58,7 @@ export async function runsRoutes(app: FastifyInstance) {
       if (status) { query += " AND runs.status = ?"; params.push(status); }
     }
     query += " ORDER BY runs.created_at DESC LIMIT ?";
-    params.push(parseInt(limit, 10));
+    params.push(limitNum);
 
     return db.prepare(query).all(...params) as unknown as Run[];
   });
