@@ -9,6 +9,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## [0.1.15] — 2026-03-25
 
 ### Security
+- **#2 — Scheduler privilege escalation** — before dispatching a scheduled run, the scheduler now re-validates that the schedule creator still exists, is not disabled, and retains write/owner/admin access to the test; schedule is auto-disabled if access has been revoked
+- **#3 — VM sandbox escape prevention** — `page`, `context`, and `browser` objects passed to user test scripts are now wrapped with a deny-list Proxy that blocks dangerous Playwright APIs (`route`, `unroute`, `exposeFunction`, `exposeBinding`, `addInitScript`, `pdf`, `newContext`, `newBrowserCDPSession`, etc.)
+- **#4 — Auth state path traversal** — all auth state filesystem operations now derive the file path from the record ID via `safeFilePath(id)`; the stored `file_path` DB column is never used for I/O, eliminating traversal risk if the database is tampered with
+- **#5 — Session brute-force rate limit tightened** — `BAD_TOKEN_MAX` reduced from 30 → 5 invalid attempts per 15-minute window per IP
+- **#6 — Export tmpdir permission hardening** — `fs.chmodSync(tmpDir, 0o700)` applied immediately after `mkdtempSync` on artifact export to prevent other local users reading run artifacts
+- **#7 — SSE stream authentication race** — log stream now captures session expiry once at stream open via `getSessionExpiry()`; per-tick check compares timestamps without a DB round-trip, closing the 1-second re-validation race window
 - **#8 — FK annotation on `triggered_by_run_id`** — migration now includes `REFERENCES runs(id) ON DELETE SET NULL`; clarifying comment added for SQLite ALTER TABLE FK limitation on existing deployments
 - **#9 — Codegen temp file hardening** — replaced predictable `tracelab-codegen-<id>.js` path with `mkdtempSync`-owned private directory (`chmod 0o700`); entire dir is `rmSync`'d on finish, eliminating symlink and race attack surface
 - **#10 — Structured audit logging** — `req.log.info` entries added for all sensitive mutations: `run_triggered` (test run dispatch), `share_created / share_updated / share_deleted` (test shares), `chain_link_created / chain_link_deleted` (dependency chain), `auth_state_record_started / auth_state_refresh_started` (auth state capture); all entries include actor username and relevant IDs for traceability
