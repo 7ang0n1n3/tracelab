@@ -6,6 +6,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [0.1.15] — 2026-03-25
+
+### Security
+- **#8 — FK annotation on `triggered_by_run_id`** — migration now includes `REFERENCES runs(id) ON DELETE SET NULL`; clarifying comment added for SQLite ALTER TABLE FK limitation on existing deployments
+- **#9 — Codegen temp file hardening** — replaced predictable `tracelab-codegen-<id>.js` path with `mkdtempSync`-owned private directory (`chmod 0o700`); entire dir is `rmSync`'d on finish, eliminating symlink and race attack surface
+- **#10 — Structured audit logging** — `req.log.info` entries added for all sensitive mutations: `run_triggered` (test run dispatch), `share_created / share_updated / share_deleted` (test shares), `chain_link_created / chain_link_deleted` (dependency chain), `auth_state_record_started / auth_state_refresh_started` (auth state capture); all entries include actor username and relevant IDs for traceability
+- **#11 — Cron expression guards** — `validateCron()` now rejects expressions longer than 100 characters (parser DoS prevention) and schedules with an interval shorter than 5 minutes (scheduler abuse prevention)
+
+---
+
 ## [0.1.14] — 2026-03-25
 
 ### Added
