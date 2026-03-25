@@ -16,13 +16,38 @@ export function computeNextRun(cronExpr: string, from: Date = new Date()): Date 
   }
 }
 
+// Minimum allowed schedule interval: 5 minutes (prevents scheduler abuse)
+const MIN_INTERVAL_MS = 5 * 60 * 1000;
+// Maximum cron expression length (prevents parser DoS via huge input)
+const MAX_CRON_LENGTH = 100;
+
 export function validateCron(cronExpr: string): boolean {
+  if (!cronExpr || cronExpr.length > MAX_CRON_LENGTH) return false;
   try {
-    cronParser.parseExpression(cronExpr);
+    const interval = cronParser.parseExpression(cronExpr);
+    const first = interval.next().getTime();
+    const second = interval.next().getTime();
+    if (second - first < MIN_INTERVAL_MS) return false;
     return true;
   } catch {
     return false;
   }
+}
+
+function creatorHasWriteAccess(test: Test, creatorId: string, creatorRole: string): boolean {
+  if (creatorRole === "admin") return true;
+  if (test.user_id === creatorId) return true;
+  if (!test.user_id) return false; // orphaned test — admin-only
+  const share = db.prepare(`
+    SELECT permission FROM test_shares
+    WHERE test_id = ? AND (
+      (grantee_type = 'user' AND grantee_id = ?) OR
+      (grantee_type = 'role' AND grantee_id = ?)
+    )
+    ORDER BY CASE permission WHEN 'write' THEN 0 ELSE 1 END
+    LIMIT 1
+  `).get(test.id, creatorId, creatorRole) as { permission: string } | undefined;
+  return share?.permission === "write";
 }
 
 export async function checkSchedules(): Promise<void> {
@@ -37,7 +62,27 @@ export async function checkSchedules(): Promise<void> {
     if (!test) {
       // Test was deleted but cascade didn't fire — disable schedule
       db.prepare("UPDATE schedules SET enabled = 0 WHERE id = ?").run(sched.id);
+      console.warn(`[scheduler] schedule ${sched.id} disabled — test ${sched.test_id} no longer exists`);
       continue;
+    }
+
+    // Re-validate that the schedule creator still has write access to the test.
+    // Access may have been revoked since the schedule was created.
+    if (sched.created_by) {
+      const creator = db.prepare("SELECT id, role, disabled FROM users WHERE id = ?")
+        .get(sched.created_by) as { id: string; role: string; disabled: number } | undefined;
+
+      if (!creator || creator.disabled) {
+        db.prepare("UPDATE schedules SET enabled = 0 WHERE id = ?").run(sched.id);
+        console.warn(`[scheduler] schedule ${sched.id} disabled — creator ${sched.created_by} not found or is disabled`);
+        continue;
+      }
+
+      if (!creatorHasWriteAccess(test, creator.id, creator.role)) {
+        db.prepare("UPDATE schedules SET enabled = 0 WHERE id = ?").run(sched.id);
+        console.warn(`[scheduler] schedule ${sched.id} disabled — creator ${sched.created_by} no longer has write access to test ${test.id}`);
+        continue;
+      }
     }
 
     const runId = uuidv4();

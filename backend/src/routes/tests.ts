@@ -218,6 +218,7 @@ export async function testsRoutes(app: FastifyInstance) {
     const runId = uuidv4();
     const now = Date.now();
     db.prepare("INSERT INTO runs (id, test_id, status, created_at) VALUES (?, ?, 'pending', ?)").run(runId, id, now);
+    req.log.info({ test_id: id, run_id: runId, actor: req.user!.username, event: "run_triggered" }, "Test run triggered");
     dispatchRun(runId, test).catch((err) => console.error("Run dispatch error:", err));
     return reply.status(202).send({ runId });
   });

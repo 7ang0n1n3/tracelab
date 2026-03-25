@@ -106,6 +106,7 @@ export async function chainLinksRoutes(app: FastifyInstance) {
       throw err;
     }
 
+    req.log.info({ from_test_id, to_test_id, actor: req.user!.username, event: "chain_link_created" }, "Chain link created");
     return reply.status(201).send(db.prepare("SELECT * FROM chain_links WHERE id = ?").get(id));
   });
 
@@ -135,6 +136,7 @@ export async function chainLinksRoutes(app: FastifyInstance) {
     if (!access || access === "read") return reply.status(403).send({ error: "Forbidden" });
 
     db.prepare("DELETE FROM chain_links WHERE id = ?").run(id);
+    req.log.info({ chain_link_id: id, from_test_id: link.from_test_id, to_test_id: link.to_test_id, actor: req.user!.username, event: "chain_link_deleted" }, "Chain link deleted");
     return reply.status(204).send();
   });
 }

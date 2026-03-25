@@ -87,7 +87,11 @@ export function initSchema() {
   try { db.exec("ALTER TABLE runs ADD COLUMN attempt INTEGER NOT NULL DEFAULT 1"); } catch {}
   try { db.exec("ALTER TABLE runs ADD COLUMN parent_run_id TEXT"); } catch {}
   try { db.exec("ALTER TABLE runs ADD COLUMN chain_run_id TEXT"); } catch {}
-  try { db.exec("ALTER TABLE runs ADD COLUMN triggered_by_run_id TEXT"); } catch {}
+  // Note: SQLite ALTER TABLE cannot add FK constraints to existing columns.
+  // The REFERENCES clause below is declarative only; enforcement requires PRAGMA foreign_keys = ON
+  // and only applies to rows inserted after this migration runs on a fresh DB.
+  // Application-level checks in executor.ts guard the FK relationship on existing deployments.
+  try { db.exec("ALTER TABLE runs ADD COLUMN triggered_by_run_id TEXT REFERENCES runs(id) ON DELETE SET NULL"); } catch {}
 
   // Schedules table
   db.exec(`

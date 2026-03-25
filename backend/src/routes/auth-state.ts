@@ -20,10 +20,10 @@ function canAccess(userId: string, role: string, state: AuthState): boolean {
   return !state.user_id || state.user_id === userId;
 }
 
-function isSafePath(filePath: string): boolean {
-  const resolved = path.resolve(filePath);
-  const base = path.resolve(AUTH_STATE_PATH);
-  return resolved.startsWith(base + path.sep);
+// Always derive the filesystem path from the record ID — never trust the stored file_path column.
+// This eliminates path traversal if the database is tampered with.
+function safeFilePath(id: string): string {
+  return path.join(path.resolve(AUTH_STATE_PATH), `${id}.json`);
 }
 
 export async function authStateRoutes(app: FastifyInstance) {
@@ -45,11 +45,7 @@ export async function authStateRoutes(app: FastifyInstance) {
     const body = req.body as Partial<AuthState>;
     const id = uuidv4();
     const now = Date.now();
-    const filePath = path.join(AUTH_STATE_PATH, `${id}.json`);
-
-    if (!isSafePath(filePath)) {
-      return reply.status(500).send({ error: "Could not create auth state" });
-    }
+    const filePath = safeFilePath(id);
 
     db.prepare(`
       INSERT INTO auth_states (id, user_id, name, app_name, base_url, file_path, created_at, updated_at)
@@ -69,7 +65,8 @@ export async function authStateRoutes(app: FastifyInstance) {
       return reply.status(403).send({ error: "Forbidden" });
     }
 
-    if (fs.existsSync(state.file_path)) fs.unlinkSync(state.file_path);
+    const filePath = safeFilePath(state.id);
+    if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
     db.prepare("DELETE FROM auth_states WHERE id = ?").run(id);
     return reply.status(204).send();
   });
@@ -83,15 +80,13 @@ export async function authStateRoutes(app: FastifyInstance) {
       return reply.status(403).send({ error: "Forbidden" });
     }
 
-    if (!isSafePath(state.file_path)) {
-      return reply.status(400).send({ error: "Invalid auth state path" });
-    }
     try {
       const response = await axios.post(`${RUNNER_URL}/record-auth`, {
         authStateId: id,
-        outputPath: state.file_path,
+        outputPath: safeFilePath(state.id),
         baseUrl: state.base_url,
       }, { headers: runnerHeaders() });
+      req.log.info({ auth_state_id: id, actor: req.user!.username, event: "auth_state_record_started" }, "Auth state recording started");
       return reply.send(response.data);
     } catch (err: any) {
       return reply.status(502).send({ error: "Runner unavailable" });
@@ -106,19 +101,17 @@ export async function authStateRoutes(app: FastifyInstance) {
     if (!canAccess(req.user!.id, req.user!.role, state)) {
       return reply.status(403).send({ error: "Forbidden" });
     }
-    if (!isSafePath(state.file_path)) {
-      return reply.status(400).send({ error: "Invalid auth state path" });
-    }
-
-    if (fs.existsSync(state.file_path)) fs.unlinkSync(state.file_path);
+    const refreshPath = safeFilePath(state.id);
+    if (fs.existsSync(refreshPath)) fs.unlinkSync(refreshPath);
     db.prepare("UPDATE auth_states SET updated_at = ? WHERE id = ?").run(Date.now(), id);
 
     try {
       const response = await axios.post(`${RUNNER_URL}/record-auth`, {
         authStateId: id,
-        outputPath: state.file_path,
+        outputPath: refreshPath,
         baseUrl: state.base_url,
       }, { headers: runnerHeaders() });
+      req.log.info({ auth_state_id: id, actor: req.user!.username, event: "auth_state_refresh_started" }, "Auth state refresh started");
       return reply.send(response.data);
     } catch (err: any) {
       return reply.status(502).send({ error: "Runner unavailable" });
@@ -151,6 +144,6 @@ export async function authStateRoutes(app: FastifyInstance) {
     if (!canAccess(req.user!.id, req.user!.role, state)) {
       return reply.status(403).send({ error: "Forbidden" });
     }
-    return { id, hasFile: fs.existsSync(state.file_path), updatedAt: state.updated_at };
+    return { id, hasFile: fs.existsSync(safeFilePath(state.id)), updatedAt: state.updated_at };
   });
 }

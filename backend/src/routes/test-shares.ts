@@ -104,9 +104,11 @@ export async function testSharesRoutes(app: FastifyInstance) {
       const existing = db.prepare(
         "SELECT * FROM test_shares WHERE test_id = ? AND grantee_type = ? AND grantee_id = ?"
       ).get(id, grantee_type, grantee_id) as unknown as TestShare;
+      req.log.info({ test_id: id, grantee_type, grantee_id, permission, actor: req.user!.username, event: "share_updated" }, "Test share updated");
       return reply.status(200).send(existing);
     }
 
+    req.log.info({ test_id: id, grantee_type, grantee_id, permission, actor: req.user!.username, event: "share_created" }, "Test share created");
     return reply.status(201).send(
       db.prepare("SELECT * FROM test_shares WHERE id = ?").get(shareId)
     );
@@ -125,6 +127,7 @@ export async function testSharesRoutes(app: FastifyInstance) {
     if (!share) return reply.status(404).send({ error: "Share not found" });
 
     db.prepare("DELETE FROM test_shares WHERE id = ?").run(shareId);
+    req.log.info({ test_id: id, share_id: shareId, actor: req.user!.username, event: "share_deleted" }, "Test share removed");
     return reply.status(204).send();
   });
 }

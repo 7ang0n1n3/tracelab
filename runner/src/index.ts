@@ -21,7 +21,7 @@ let vncInUse = false;
 const recordingSessions: Map<string, { close: () => Promise<void> }> = new Map();
 
 // Track active codegen sessions
-const codegenSessions: Map<string, { proc: ChildProcess; outputFile: string }> = new Map();
+const codegenSessions: Map<string, { proc: ChildProcess; outputFile: string; tmpDir: string }> = new Map();
 
 // Track VNC processes per codegen session
 const vncProcesses: Map<string, { x11vnc: ChildProcess; websockify: ChildProcess }> = new Map();
@@ -195,7 +195,10 @@ async function main() {
   app.post("/codegen/start", async (req, reply) => {
     const body = req.body as { sessionId?: string; url?: string };
     const sessionId = body.sessionId ?? uuidv4();
-    const outputFile = path.join(os.tmpdir(), `tracelab-codegen-${sessionId}.js`);
+    // Use a private temp directory per session to prevent symlink/race attacks on the output file
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "tracelab-codegen-"));
+    fs.chmodSync(tmpDir, 0o700);
+    const outputFile = path.join(tmpDir, "codegen.js");
 
     // Start VNC so the user can view the browser in-app
     await startVnc(sessionId);
@@ -214,7 +217,7 @@ async function main() {
       stopVnc(sessionId);
     });
 
-    codegenSessions.set(sessionId, { proc, outputFile });
+    codegenSessions.set(sessionId, { proc, outputFile, tmpDir });
 
     return reply.send({
       sessionId,
@@ -240,8 +243,9 @@ async function main() {
     let raw = "";
     if (fs.existsSync(session.outputFile)) {
       raw = fs.readFileSync(session.outputFile, "utf-8");
-      fs.unlinkSync(session.outputFile);
     }
+    // Clean up the entire private temp directory
+    fs.rmSync(session.tmpDir, { recursive: true, force: true });
 
     codegenSessions.delete(body.sessionId);
 
