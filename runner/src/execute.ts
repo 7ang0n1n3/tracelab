@@ -98,9 +98,64 @@ export async function executeScript(opts: ExecuteOptions): Promise<ExecuteResult
       throw new Error("Script exceeds maximum allowed size (100KB)");
     }
 
+    // Deny-list proxy: allow the full Playwright API except methods that enable
+    // SSRF, credential exfiltration, or untracked browser contexts.
+    function denyProxy<T extends object>(obj: T, denied: Set<string>, label: string): T {
+      return new Proxy(obj, {
+        get(target, prop) {
+          if (typeof prop === "string" && denied.has(prop)) {
+            throw new Error(`[TraceLab] '${label}.${prop}' is not available in test scripts`);
+          }
+          const value = (target as any)[prop];
+          return typeof value === "function" ? value.bind(target) : value;
+        },
+      });
+    }
+
+    // context: block request (SSRF), route interception, script injection,
+    //          Node.js callback bridges, and direct storage-state dumps.
+    const CONTEXT_DENIED = new Set([
+      "request",         // APIRequestContext — arbitrary outbound HTTP / file reads
+      "route",           // intercept + modify requests
+      "unroute",
+      "routeFromHAR",
+      "addInitScript",   // injected into every new page in this context
+      "exposeFunction",  // call Node.js fn from browser
+      "exposeBinding",
+      "storageState",    // dumps all cookies + localStorage
+    ]);
+
+    // page: block per-page equivalents of the above
+    const PAGE_DENIED = new Set([
+      "route",
+      "unroute",
+      "routeFromHAR",
+      "addInitScript",
+      "exposeFunction",
+      "exposeBinding",
+      "pdf",             // arbitrary file write to the runner filesystem
+    ]);
+
+    // browser: block creation of untracked contexts and raw CDP access
+    const BROWSER_DENIED = new Set([
+      "newContext",          // would bypass timeout / artifact / auth-state wiring
+      "newBrowserCDPSession", // raw Chrome DevTools Protocol
+    ]);
+
+    const safePage    = denyProxy(page,    PAGE_DENIED,    "page");
+    const safeContext = denyProxy(context, CONTEXT_DENIED, "context");
+    const safeBrowser = denyProxy(browser, BROWSER_DENIED, "browser");
+
     // Run in a vm context to restrict direct access to Node.js globals
     // (require, process, __dirname, etc. are not available in the sandbox)
-    const sandbox = vm.createContext({ page, context, browser, takeScreenshot, log, baseUrl: opts.baseUrl });
+    const sandbox = vm.createContext({
+      page: safePage,
+      context: safeContext,
+      browser: safeBrowser,
+      takeScreenshot,
+      log,
+      baseUrl: opts.baseUrl,
+    });
     // timeout applies to synchronous code only — Playwright's own timeout handles async operations
     const promise = vm.runInContext(`(async () => { ${script} })()`, sandbox, { displayErrors: true, timeout: 5000 });
     await promise;

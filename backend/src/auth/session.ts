@@ -67,6 +67,16 @@ export function getSessionUser(token: string): Omit<User, "password_hash"> | nul
   return user;
 }
 
+// Returns the session expiry timestamp (ms) for a valid token, or null if not found / expired.
+// Used by SSE streams to close at exactly the right time without re-querying on every tick.
+export function getSessionExpiry(token: string): number | null {
+  const tokenHash = hashToken(token);
+  const session = db.prepare(
+    "SELECT expires_at FROM sessions WHERE id = ? AND expires_at > ?"
+  ).get(tokenHash, Date.now()) as Pick<Session, "expires_at"> | undefined;
+  return session?.expires_at ?? null;
+}
+
 export function deleteSession(token: string): void {
   const tokenHash = hashToken(token);
   db.prepare("DELETE FROM sessions WHERE id = ?").run(tokenHash);

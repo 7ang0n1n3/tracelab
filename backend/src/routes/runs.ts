@@ -4,7 +4,7 @@ import fs from "fs";
 import db from "../db/client";
 import { Run, Test } from "../types";
 import { requireAuth } from "../auth/middleware";
-import { getSessionUser } from "../auth/session";
+import { getSessionExpiry } from "../auth/session";
 
 function parseSessionToken(cookieHeader: string | undefined): string | undefined {
   if (!cookieHeader) return undefined;
@@ -117,13 +117,22 @@ export async function runsRoutes(app: FastifyInstance) {
 
     const sessionToken = parseSessionToken(req.headers.cookie);
 
+    // Capture session expiry once at stream open — avoids a DB round-trip on every tick
+    // and eliminates the 1-second re-validation race window.
+    const sessionExpiresAt = sessionToken ? getSessionExpiry(sessionToken) : null;
+    if (!sessionExpiresAt) {
+      reply.raw.write("data: __unauthorized__\n\n");
+      reply.raw.end();
+      return;
+    }
+
     const send = (data: string) => {
       reply.raw.write(`data: ${JSON.stringify({ log: data })}\n\n`);
     };
 
     const interval = setInterval(() => {
-      // Re-validate session on each tick so logged-out users are kicked off
-      if (!sessionToken || !getSessionUser(sessionToken)) {
+      // Close stream if session has expired
+      if (Date.now() >= sessionExpiresAt) {
         reply.raw.write("data: __unauthorized__\n\n");
         clearInterval(interval);
         reply.raw.end();

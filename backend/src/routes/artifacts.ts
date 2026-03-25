@@ -114,6 +114,7 @@ export async function artifactsRoutes(app: FastifyInstance) {
 
     const artifactDir = path.join(ARTIFACTS_PATH, runId);
     const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "tracelab-export-"));
+    fs.chmodSync(tmpDir, 0o700); // restrict to owner — prevent other local users reading run artifacts
     const zipPath = path.join(tmpDir, "export.zip");
 
     try {

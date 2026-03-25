@@ -15,9 +15,11 @@ function parseSessionCookie(req: FastifyRequest): string | undefined {
   return pair ? pair.slice("tracelab_session=".length) : undefined;
 }
 
-// Rate-limit invalid session token lookups to slow brute-force token enumeration
+// Rate-limit invalid session token lookups to slow brute-force token enumeration.
+// Note: counter is in-memory and resets on restart — intentionally kept simple for
+// a self-hosted deployment where backend restarts are a privileged operation.
 const badTokenAttempts = new Map<string, { count: number; resetAt: number }>();
-const BAD_TOKEN_MAX = 30;
+const BAD_TOKEN_MAX = 5;
 const BAD_TOKEN_WINDOW_MS = 15 * 60 * 1000;
 
 function isBadTokenRateLimited(ip: string): boolean {
