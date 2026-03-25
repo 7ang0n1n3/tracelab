@@ -1,3 +1,4 @@
+// /backend/src/runner/executor.ts
 import axios from "axios";
 import path from "path";
 import { v4 as uuidv4 } from "uuid";
@@ -17,7 +18,7 @@ function getSettings(): RunConfig & { defaultBrowser: "chromium" | "firefox" | "
   const rows = db.prepare("SELECT key, value FROM settings").all() as { key: string; value: string }[];
   const s = Object.fromEntries(rows.map((r) => [r.key, r.value]));
   const validBrowsers = ["chromium", "firefox", "webkit"] as const;
-  const defaultBrowser = validBrowsers.includes(s.defaultBrowser as any)
+  const defaultBrowser = validBrowsers.includes(s.defaultBrowser as "chromium" | "firefox" | "webkit")
     ? (s.defaultBrowser as "chromium" | "firefox" | "webkit")
     : "chromium";
   return {
@@ -33,53 +34,50 @@ function getSettings(): RunConfig & { defaultBrowser: "chromium" | "firefox" | "
   };
 }
 
-export async function dispatchRun(
-  runId: string,
+function resolveRunConfig(
   test: Test,
-  attempt = 1,
-  parentRunId?: string,
-  chainRunId?: string,
-  triggeredByRunId?: string,
-) {
-  const { defaultBrowser, retryCount: systemRetryCount, ...config } = getSettings();
+  settings: RunConfig & { defaultBrowser: "chromium" | "firefox" | "webkit" }
+): RunConfig {
   const validBrowsers = ["chromium", "firefox", "webkit"] as const;
-  config.browser = validBrowsers.includes(test.browser as any)
+  const config: RunConfig = { ...settings };
+  config.browser = validBrowsers.includes(test.browser as "chromium" | "firefox" | "webkit")
     ? (test.browser as "chromium" | "firefox" | "webkit")
-    : defaultBrowser;
+    : settings.defaultBrowser;
   if (test.capture_video !== null && test.capture_video !== undefined) {
     config.captureVideo = test.capture_video === 1;
   }
   if (test.headless !== null && test.headless !== undefined) {
     config.headless = test.headless === 1;
   }
+  return config;
+}
 
-  let authStatePath: string | null = null;
-  if (test.use_auth && test.auth_state_id) {
-    const state = db
-      .prepare("SELECT * FROM auth_states WHERE id = ?")
-      .get(test.auth_state_id) as AuthState | undefined;
-    if (state) {
-      authStatePath = state.file_path;
-      db.prepare("UPDATE auth_states SET last_used_at = ? WHERE id = ?").run(Date.now(), state.id);
-    }
+function lookupAuthState(test: Test): string | null {
+  if (!test.use_auth || !test.auth_state_id) return null;
+  const state = db
+    .prepare("SELECT * FROM auth_states WHERE id = ?")
+    .get(test.auth_state_id) as AuthState | undefined;
+  if (!state) return null;
+  db.prepare("UPDATE auth_states SET last_used_at = ? WHERE id = ?").run(Date.now(), state.id);
+  return state.file_path;
+}
+
+async function startVncIfHeaded(runId: string, headless: boolean): Promise<void> {
+  if (headless) return;
+  try {
+    await axios.post(`${RUNNER_URL}/execute/vnc-start`, { runId }, { headers: runnerHeaders() });
+    db.prepare("UPDATE runs SET vnc_port = ? WHERE id = ?").run(RUNNER_NOVNC_PORT, runId);
+  } catch {
+    // VNC failed to start — continue without it (test still runs headlessly via DISPLAY)
   }
+}
 
-  // Mark run as running (vnc_port is set later, only after VNC is confirmed ready)
-  db.prepare("UPDATE runs SET status = 'running', started_at = ? WHERE id = ?").run(Date.now(), runId);
-
-  // For headed runs: start VNC on the runner first, wait for it to be ready,
-  // then write vnc_port to the DB so the frontend only shows the iframe once connectable
-  if (!config.headless) {
-    try {
-      await axios.post(`${RUNNER_URL}/execute/vnc-start`, { runId }, { headers: runnerHeaders() });
-      db.prepare("UPDATE runs SET vnc_port = ? WHERE id = ?").run(RUNNER_NOVNC_PORT, runId);
-    } catch {
-      // VNC failed to start — continue without it (test still runs headlessly via DISPLAY)
-    }
-  }
-
-  let finalStatus: "passed" | "failed" | "error" = "error";
-
+async function invokeRunner(
+  runId: string,
+  test: Test,
+  authStatePath: string | null,
+  config: RunConfig
+): Promise<"passed" | "failed" | "error"> {
   try {
     const response = await axios.post<RunResult>(`${RUNNER_URL}/execute`, {
       runId,
@@ -91,7 +89,6 @@ export async function dispatchRun(
     }, { headers: runnerHeaders() });
 
     const result = response.data;
-    finalStatus = result.status;
     db.prepare(`
       UPDATE runs SET
         status = ?, finished_at = ?, duration_ms = ?,
@@ -107,13 +104,60 @@ export async function dispatchRun(
       result.errorMessage,
       runId
     );
-  } catch (err: any) {
-    const msg = err?.response?.data?.error || err.message || "Runner error";
+    return result.status;
+  } catch (err: unknown) {
+    const msg = (err as { response?: { data?: { error?: string } }; message?: string })?.response?.data?.error
+      || (err as Error).message
+      || "Runner error";
     db.prepare(`
       UPDATE runs SET status = 'error', finished_at = ?, error_message = ? WHERE id = ?
     `).run(Date.now(), msg, runId);
-    finalStatus = "error";
+    return "error";
   }
+}
+
+function dispatchChainLinks(
+  test: Test,
+  finalStatus: "passed" | "failed" | "error",
+  chainRunId: string | undefined,
+  triggeringRunId: string
+): void {
+  const links = db.prepare(
+    "SELECT * FROM chain_links WHERE from_test_id = ?"
+  ).all(test.id) as unknown as ChainLink[];
+
+  for (const link of links) {
+    if (finalStatus === "passed" || link.continue_on_failure === 1) {
+      const nextTest = db.prepare("SELECT * FROM tests WHERE id = ?").get(link.to_test_id) as Test | undefined;
+      if (!nextTest) continue;
+      const nextRunId = uuidv4();
+      const effectiveChainRunId = chainRunId ?? triggeringRunId;
+      db.prepare(
+        "INSERT INTO runs (id, test_id, status, attempt, chain_run_id, triggered_by_run_id, created_at) VALUES (?, ?, 'pending', 1, ?, ?, ?)"
+      ).run(nextRunId, nextTest.id, effectiveChainRunId, triggeringRunId, Date.now());
+      dispatchRun(nextRunId, nextTest, 1, undefined, effectiveChainRunId, triggeringRunId)
+        .catch((err) => console.error("Chain dispatch error:", err));
+    }
+  }
+}
+
+export async function dispatchRun(
+  runId: string,
+  test: Test,
+  attempt = 1,
+  parentRunId?: string,
+  chainRunId?: string,
+  triggeredByRunId?: string,
+) {
+  const { defaultBrowser, retryCount: systemRetryCount, ...settings } = getSettings();
+  const config = resolveRunConfig(test, { ...settings, defaultBrowser });
+  const authStatePath = lookupAuthState(test);
+
+  db.prepare("UPDATE runs SET status = 'running', started_at = ? WHERE id = ?").run(Date.now(), runId);
+
+  await startVncIfHeaded(runId, config.headless);
+
+  const finalStatus = await invokeRunner(runId, test, authStatePath, config);
 
   // Retry on failure — return early so chain is not triggered until retries are exhausted
   if (finalStatus === "failed" || finalStatus === "error") {
@@ -128,26 +172,9 @@ export async function dispatchRun(
       ).run(retryRunId, test.id, attempt + 1, effectiveParentId, chainRunId ?? null, triggeredByRunId ?? null, Date.now());
       dispatchRun(retryRunId, test, attempt + 1, effectiveParentId, chainRunId, triggeredByRunId)
         .catch((err) => console.error("Retry dispatch error:", err));
-      return; // retries pending — chain triggers after final retry settles
+      return;
     }
   }
 
-  // Chain trigger — fires after run is final (passed, or failed/error with retries exhausted)
-  const links = db.prepare(
-    "SELECT * FROM chain_links WHERE from_test_id = ?"
-  ).all(test.id) as unknown as ChainLink[];
-
-  for (const link of links) {
-    if (finalStatus === "passed" || link.continue_on_failure === 1) {
-      const nextTest = db.prepare("SELECT * FROM tests WHERE id = ?").get(link.to_test_id) as Test | undefined;
-      if (!nextTest) continue;
-      const nextRunId = uuidv4();
-      const effectiveChainRunId = chainRunId ?? runId; // first run's ID anchors the chain
-      db.prepare(
-        "INSERT INTO runs (id, test_id, status, attempt, chain_run_id, triggered_by_run_id, created_at) VALUES (?, ?, 'pending', 1, ?, ?, ?)"
-      ).run(nextRunId, nextTest.id, effectiveChainRunId, runId, Date.now());
-      dispatchRun(nextRunId, nextTest, 1, undefined, effectiveChainRunId, runId)
-        .catch((err) => console.error("Chain dispatch error:", err));
-    }
-  }
+  dispatchChainLinks(test, finalStatus, chainRunId, runId);
 }

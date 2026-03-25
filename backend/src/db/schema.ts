@@ -1,3 +1,4 @@
+// /backend/src/db/schema.ts
 import crypto from "crypto";
 import db from "./client";
 
@@ -7,7 +8,7 @@ function hashPassword(password: string): string {
   return `${salt}:${hash}`;
 }
 
-export function initSchema() {
+function createTables(): void {
   db.exec(`
     CREATE TABLE IF NOT EXISTS users (
       id TEXT PRIMARY KEY,
@@ -72,28 +73,6 @@ export function initSchema() {
     );
   `);
 
-  // Migrate existing tables (no-op if columns already exist)
-  try { db.exec("ALTER TABLE tests ADD COLUMN user_id TEXT REFERENCES users(id) ON DELETE SET NULL"); } catch {}
-  try { db.exec("ALTER TABLE auth_states ADD COLUMN user_id TEXT REFERENCES users(id) ON DELETE SET NULL"); } catch {}
-  try { db.exec("ALTER TABLE tests ADD COLUMN browser TEXT"); } catch {}
-  try { db.exec("ALTER TABLE tests ADD COLUMN capture_video INTEGER"); } catch {}
-
-  try { db.exec("ALTER TABLE users ADD COLUMN disabled INTEGER NOT NULL DEFAULT 0"); } catch {}
-  try { db.exec("ALTER TABLE users ADD COLUMN last_login INTEGER"); } catch {}
-  try { db.exec("ALTER TABLE users ADD COLUMN must_change_password INTEGER NOT NULL DEFAULT 0"); } catch {}
-  try { db.exec("ALTER TABLE runs ADD COLUMN vnc_port INTEGER"); } catch {}
-  try { db.exec("ALTER TABLE tests ADD COLUMN headless INTEGER"); } catch {}
-  try { db.exec("ALTER TABLE tests ADD COLUMN retry_count INTEGER"); } catch {}
-  try { db.exec("ALTER TABLE runs ADD COLUMN attempt INTEGER NOT NULL DEFAULT 1"); } catch {}
-  try { db.exec("ALTER TABLE runs ADD COLUMN parent_run_id TEXT"); } catch {}
-  try { db.exec("ALTER TABLE runs ADD COLUMN chain_run_id TEXT"); } catch {}
-  // Note: SQLite ALTER TABLE cannot add FK constraints to existing columns.
-  // The REFERENCES clause below is declarative only; enforcement requires PRAGMA foreign_keys = ON
-  // and only applies to rows inserted after this migration runs on a fresh DB.
-  // Application-level checks in executor.ts guard the FK relationship on existing deployments.
-  try { db.exec("ALTER TABLE runs ADD COLUMN triggered_by_run_id TEXT REFERENCES runs(id) ON DELETE SET NULL"); } catch {}
-
-  // Schedules table
   db.exec(`
     CREATE TABLE IF NOT EXISTS schedules (
       id TEXT PRIMARY KEY,
@@ -108,10 +87,6 @@ export function initSchema() {
     );
   `);
 
-  // Runs: add schedule_id if missing
-  try { db.exec("ALTER TABLE runs ADD COLUMN schedule_id TEXT REFERENCES schedules(id) ON DELETE SET NULL"); } catch {}
-
-  // Chain links table
   db.exec(`
     CREATE TABLE IF NOT EXISTS chain_links (
       id TEXT PRIMARY KEY,
@@ -123,7 +98,6 @@ export function initSchema() {
     );
   `);
 
-  // Test shares table
   db.exec(`
     CREATE TABLE IF NOT EXISTS test_shares (
       id TEXT PRIMARY KEY,
@@ -135,8 +109,47 @@ export function initSchema() {
       UNIQUE(test_id, grantee_type, grantee_id)
     );
   `);
+}
 
-  // Default settings
+function isMigrationError(err: unknown): boolean {
+  if (!(err instanceof Error)) return false;
+  const msg = err.message.toLowerCase();
+  return msg.includes("duplicate column name") || msg.includes("already exists");
+}
+
+function runMigrations(): void {
+  const migrations: string[] = [
+    "ALTER TABLE tests ADD COLUMN user_id TEXT REFERENCES users(id) ON DELETE SET NULL",
+    "ALTER TABLE auth_states ADD COLUMN user_id TEXT REFERENCES users(id) ON DELETE SET NULL",
+    "ALTER TABLE tests ADD COLUMN browser TEXT",
+    "ALTER TABLE tests ADD COLUMN capture_video INTEGER",
+    "ALTER TABLE users ADD COLUMN disabled INTEGER NOT NULL DEFAULT 0",
+    "ALTER TABLE users ADD COLUMN last_login INTEGER",
+    "ALTER TABLE users ADD COLUMN must_change_password INTEGER NOT NULL DEFAULT 0",
+    "ALTER TABLE runs ADD COLUMN vnc_port INTEGER",
+    "ALTER TABLE tests ADD COLUMN headless INTEGER",
+    "ALTER TABLE tests ADD COLUMN retry_count INTEGER",
+    "ALTER TABLE runs ADD COLUMN attempt INTEGER NOT NULL DEFAULT 1",
+    "ALTER TABLE runs ADD COLUMN parent_run_id TEXT",
+    "ALTER TABLE runs ADD COLUMN chain_run_id TEXT",
+    // Note: SQLite ALTER TABLE cannot add FK constraints to existing columns.
+    // The REFERENCES clause below is declarative only; enforcement requires PRAGMA foreign_keys = ON
+    // and only applies to rows inserted after this migration runs on a fresh DB.
+    // Application-level checks in executor.ts guard the FK relationship on existing deployments.
+    "ALTER TABLE runs ADD COLUMN triggered_by_run_id TEXT REFERENCES runs(id) ON DELETE SET NULL",
+    "ALTER TABLE runs ADD COLUMN schedule_id TEXT REFERENCES schedules(id) ON DELETE SET NULL",
+  ];
+
+  for (const sql of migrations) {
+    try {
+      db.exec(sql);
+    } catch (err) {
+      if (!isMigrationError(err)) throw err;
+    }
+  }
+}
+
+function seedDefaults(): void {
   const defaults: Record<string, string> = {
     headless: "true",
     slowMo: "0",
@@ -152,7 +165,6 @@ export function initSchema() {
     insertSetting.run(key, value);
   }
 
-  // Generate persistent HMAC secret for session token hashing
   const secretExists = db.prepare("SELECT 1 FROM settings WHERE key = 'session_secret'").get();
   if (!secretExists) {
     db.prepare("INSERT INTO settings (key, value) VALUES (?, ?)").run(
@@ -160,36 +172,37 @@ export function initSchema() {
       crypto.randomBytes(32).toString("hex")
     );
   }
+}
 
-  // Seed default admin user
+function seedAdminUser(): void {
   const existing = db.prepare("SELECT id FROM users WHERE username = 'sysadmin'").get();
-  if (!existing) {
-    const now = Date.now();
-    const adminId = crypto.randomUUID();
-    db.prepare(
-      "INSERT INTO users (id, username, password_hash, role, must_change_password, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)"
-    ).run(
-      adminId,
-      "sysadmin",
-      hashPassword("qazxsw"),
-      "admin",
-      1, // force password change on first login
-      now,
-      now
-    );
-    console.log("[TraceLab] Default admin user created: sysadmin (password change required on first login)");
+  if (existing) return;
 
-    // Seed sample test owned by the admin
-    db.prepare(
-      "INSERT INTO tests (id, user_id, name, description, app_name, base_url, script, tags, use_auth, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
-    ).run(
-      crypto.randomUUID(),
-      adminId,
-      "TraceLab — smoke test",
-      "Sample test: verifies the runner can launch a browser, navigate to tangonine.com and the TraceLab GitHub repo, and capture screenshots. Run this after a fresh install to confirm the setup is working correctly.",
-      "TraceLab",
-      "https://www.tangonine.com",
-      `// Sample TraceLab test — smoke test
+  const now = Date.now();
+  const adminId = crypto.randomUUID();
+  db.prepare(
+    "INSERT INTO users (id, username, password_hash, role, must_change_password, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)"
+  ).run(
+    adminId,
+    "sysadmin",
+    hashPassword("qazxsw"),
+    "admin",
+    1, // force password change on first login
+    now,
+    now
+  );
+  console.log("[TraceLab] Default admin user created: sysadmin (password change required on first login)");
+
+  db.prepare(
+    "INSERT INTO tests (id, user_id, name, description, app_name, base_url, script, tags, use_auth, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+  ).run(
+    crypto.randomUUID(),
+    adminId,
+    "TraceLab — smoke test",
+    "Sample test: verifies the runner can launch a browser, navigate to tangonine.com and the TraceLab GitHub repo, and capture screenshots. Run this after a fresh install to confirm the setup is working correctly.",
+    "TraceLab",
+    "https://www.tangonine.com",
+    `// Sample TraceLab test — smoke test
 // Run this to verify your Playwright runner is set up correctly.
 
 await page.goto('https://www.tangonine.com');
@@ -204,11 +217,17 @@ await takeScreenshot('tracelab-github');
 
 log('Smoke test complete — runner is working correctly');
 `,
-      JSON.stringify(["sample", "smoke"]),
-      0,
-      now,
-      now
-    );
-    console.log("[TraceLab] Sample test created: TraceLab — smoke test");
-  }
+    JSON.stringify(["sample", "smoke"]),
+    0,
+    now,
+    now
+  );
+  console.log("[TraceLab] Sample test created: TraceLab — smoke test");
+}
+
+export function initSchema() {
+  createTables();
+  runMigrations();
+  seedDefaults();
+  seedAdminUser();
 }

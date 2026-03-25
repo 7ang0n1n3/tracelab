@@ -80,45 +80,60 @@ export async function usersRoutes(app: FastifyInstance) {
     }
 
     const validRoles = ["admin", "dev", "qa"];
-    const updates: string[] = [];
-    const params: (string | number)[] = [];
+
+    // Build SET clause from hardcoded column fragments only — no user input enters column names
+    const ALLOWED_CLAUSES = new Set([
+      "username = ?",
+      "password_hash = ?",
+      "must_change_password = 1",
+      "role = ?",
+      "disabled = ?",
+      "updated_at = ?",
+    ]);
+    const setClauses: string[] = [];
+    const setParams: (string | number)[] = [];
 
     if (username && username !== user.username) {
       const taken = db.prepare("SELECT id FROM users WHERE username = ? AND id != ?").get(username, id);
       if (taken) return reply.status(409).send({ error: "Username already taken" });
-      updates.push("username = ?");
-      params.push(username);
+      setClauses.push("username = ?");
+      setParams.push(username);
     }
     if (password) {
-      updates.push("password_hash = ?");
-      params.push(hashPassword(password));
+      setClauses.push("password_hash = ?");
+      setParams.push(hashPassword(password));
       // Admin resetting another user's password: force change on next login + kill active sessions
       if (id !== req.user!.id) {
-        updates.push("must_change_password = 1");
+        setClauses.push("must_change_password = 1");
         // Sessions deleted after UPDATE to avoid race condition with reads above
       }
     }
     if (role && validRoles.includes(role)) {
-      updates.push("role = ?");
-      params.push(role);
+      setClauses.push("role = ?");
+      setParams.push(role);
     }
     if (disabled !== undefined) {
-      updates.push("disabled = ?");
-      params.push(disabled ? 1 : 0);
+      setClauses.push("disabled = ?");
+      setParams.push(disabled ? 1 : 0);
       // Kill all active sessions when disabling
       if (disabled) db.prepare("DELETE FROM sessions WHERE user_id = ?").run(id);
     }
-    if (!updates.length) return reply.status(400).send({ error: "Nothing to update" });
+    if (!setClauses.length) return reply.status(400).send({ error: "Nothing to update" });
 
-    updates.push("updated_at = ?");
-    params.push(Date.now(), id);
+    setClauses.push("updated_at = ?");
+    setParams.push(Date.now(), id);
 
-    db.prepare(`UPDATE users SET ${updates.join(", ")} WHERE id = ?`).run(...params);
+    // Guard: verify all clauses are from the known-safe set (defense in depth)
+    if (!setClauses.every((c) => ALLOWED_CLAUSES.has(c))) {
+      return reply.status(500).send({ error: "Invalid update fields" });
+    }
+
+    db.prepare(`UPDATE users SET ${setClauses.join(", ")} WHERE id = ?`).run(...setParams);
     // If an admin reset another user's password, kill their active sessions now
     if (password && id !== req.user!.id) {
       db.prepare("DELETE FROM sessions WHERE user_id = ?").run(id);
     }
-    req.log.info({ actor: req.user!.username, target: user.username, fields: updates, event: "user_updated" }, "Admin updated user");
+    req.log.info({ actor: req.user!.username, target: user.username, fields: setClauses, event: "user_updated" }, "Admin updated user");
     return db.prepare("SELECT id, username, role, disabled, must_change_password, last_login, created_at, updated_at FROM users WHERE id = ?").get(id);
   });
 

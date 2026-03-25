@@ -43,7 +43,7 @@ export default function NewTestPage() {
       const test = await api.tests.create({
         name, description, app_name: appName, base_url: baseUrl, script,
         tags: tagList.length ? JSON.stringify(tagList) : null,
-        browser: browser || null,
+        browser: (browser || null) as "chromium" | "firefox" | "webkit" | null,
         capture_video: captureVideo === "" ? null : captureVideo === "true" ? 1 : 0,
       });
       router.push(`/tests/${test.id}`);

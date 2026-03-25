@@ -4,6 +4,7 @@
 import { useEffect, useState } from "react";
 import { format } from "date-fns";
 import { api } from "@/lib/api";
+import type { Schedule } from "@/types";
 import { cronToHuman } from "@/lib/schedule";
 import { Button } from "@/components/ui/Button";
 import { ScheduleBuilder } from "@/components/ui/ScheduleBuilder";
@@ -15,7 +16,7 @@ interface Props {
 }
 
 export function SchedulesPanel({ testId, readOnly = false }: Props) {
-  const [schedules, setSchedules] = useState<any[]>([]);
+  const [schedules, setSchedules] = useState<Schedule[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
@@ -61,7 +62,7 @@ export function SchedulesPanel({ testId, readOnly = false }: Props) {
     }
   }
 
-  async function handleToggle(sched: any) {
+  async function handleToggle(sched: Schedule) {
     try {
       await api.schedules.patch(sched.id, { enabled: sched.enabled ? 0 : 1 });
       flashSaved();

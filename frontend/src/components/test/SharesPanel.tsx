@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
+import type { TestShareDetail, DirectoryUser } from "@/types";
 import { Button } from "@/components/ui/Button";
 import { Trash2, UserPlus } from "lucide-react";
 
@@ -10,8 +11,8 @@ interface Props {
 }
 
 export function SharesPanel({ testId }: Props) {
-  const [shares, setShares] = useState<any[]>([]);
-  const [users, setUsers] = useState<any[]>([]);
+  const [shares, setShares] = useState<TestShareDetail[]>([]);
+  const [users, setUsers] = useState<DirectoryUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -56,7 +57,7 @@ export function SharesPanel({ testId }: Props) {
   async function handleRemove(shareId: string) {
     try {
       await api.tests.shares.remove(testId, shareId);
-      setShares((prev) => prev.filter((s) => s.id !== shareId));
+      setShares((prev) => prev.filter((s: TestShareDetail) => s.id !== shareId));
     } catch (e: any) {
       setError(e.message);
     }

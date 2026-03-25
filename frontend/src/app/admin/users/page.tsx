@@ -41,6 +41,8 @@ export default function UsersPage() {
     setLoading(true);
     try {
       setUsers(await api.users.list());
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Failed to load users");
     } finally {
       setLoading(false);
     }

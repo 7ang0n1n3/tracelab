@@ -6,6 +6,27 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [0.1.16] — 2026-03-26
+
+### Changed
+- **Shared frontend type definitions** — new `frontend/src/types.ts` mirrors backend DTOs (`Test`, `Run`, `AuthState`, `Schedule`, `ChainLink`, `TestShare`, `User`, etc.) plus API-augmented response shapes (`TestDetail`, `RunDetail`, `OutgoingChainLink`, `IncomingChainLink`, `TestShareDetail`, `DirectoryUser`, `ArtifactFile`); eliminates all `any` usage across the API layer and component state
+- **API layer fully typed** — `frontend/src/lib/api.ts` replaces all `any`/`any[]` return types with concrete generics; backend shape changes now produce compile-time errors rather than silent runtime failures
+- **Frontend component state typed** — `useState<any>` replaced with typed variants in `tests/[id]/page.tsx`, `runs/[id]/page.tsx`, `runs/page.tsx`, `tests/page.tsx`, `dashboard/page.tsx`, `ChainPanel`, `SharesPanel`, `SchedulesPanel`
+
+### Fixed
+- **Missing error handling in `load()` calls** — added `catch` blocks to all `try/finally` patterns across `tests/[id]/page.tsx`, `runs/page.tsx`, `tests/page.tsx`, `admin/users/page.tsx`, `dashboard/page.tsx`; fetch errors now surface to the user rather than leaving the UI stuck on a spinner
+- **Unhandled rejection on settings save** — `handleSave` in `settings/page.tsx` now wraps `api.settings.update` in `try/catch/finally`; `saving` state always resets and an error message is shown on failure
+- **Stale closure in `runs/[id]/page.tsx`** — `load` and `connectSSE` are now wrapped in `useCallback` with correct dependency arrays; `useEffect` dependencies updated to include both, eliminating stale reference to prior `id` value
+
+### Refactored
+- **`initSchema` split into four focused functions** — `createTables()`, `runMigrations()`, `seedDefaults()`, `seedAdminUser()`; function was 204 lines, 4× the per-function limit
+- **Migration catch blocks hardened** — introduced `isMigrationError()` helper that allows only "duplicate column name" / "already exists" SQLite errors to be suppressed; all other errors are re-thrown rather than silently swallowed
+- **`dispatchRun` decomposed** — extracted `resolveRunConfig()`, `lookupAuthState()`, `startVncIfHeaded()`, `invokeRunner()`, `dispatchChainLinks()` from the 117-line monolith; each helper has a single responsibility and is independently testable
+- **`applyStatusFilter` hoisted** — moved from inside the route handler (re-created per request) to module-level utility in `runs.ts`
+- **`users.ts` update clause hardened** — renamed `updates` → `setClauses`, added `ALLOWED_CLAUSES` allowlist verified before query execution; prevents future contributors from accidentally introducing user-controlled column names
+
+---
+
 ## [0.1.15] — 2026-03-25
 
 ### Security

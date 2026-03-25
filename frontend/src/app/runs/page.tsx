@@ -4,14 +4,15 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { formatDistanceToNow, format } from "date-fns";
 import { api } from "@/lib/api";
+import type { Run, Test } from "@/types";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { Button } from "@/components/ui/Button";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { RefreshCw, Trash2 } from "lucide-react";
 
 export default function RunsPage() {
-  const [runs, setRuns] = useState<any[]>([]);
-  const [tests, setTests] = useState<Record<string, any>>({});
+  const [runs, setRuns] = useState<Run[]>([]);
+  const [tests, setTests] = useState<Record<string, Test>>({});
   const [loading, setLoading] = useState(true);
   const [confirm, setConfirm] = useState<{ message: string; onConfirm: () => void } | null>(null);
 
@@ -20,7 +21,9 @@ export default function RunsPage() {
     try {
       const [r, t] = await Promise.all([api.runs.list({ limit: "100" }), api.tests.list()]);
       setRuns(r);
-      setTests(Object.fromEntries(t.map((x: any) => [x.id, x])));
+      setTests(Object.fromEntries(t.map((x) => [x.id, x])));
+    } catch {
+      // errors surface via empty state — runs/tests remain at prior value
     } finally {
       setLoading(false);
     }

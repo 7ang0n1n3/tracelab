@@ -4,6 +4,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { api } from "@/lib/api";
+import type { OutgoingChainLink, IncomingChainLink, Test } from "@/types";
 import { Button } from "@/components/ui/Button";
 import { Trash2, Plus, ArrowRight, ArrowLeft } from "lucide-react";
 
@@ -13,9 +14,9 @@ interface Props {
 }
 
 export function ChainPanel({ testId, readOnly = false }: Props) {
-  const [outgoing, setOutgoing] = useState<any[]>([]);
-  const [incoming, setIncoming] = useState<any[]>([]);
-  const [allTests, setAllTests] = useState<any[]>([]);
+  const [outgoing, setOutgoing] = useState<OutgoingChainLink[]>([]);
+  const [incoming, setIncoming] = useState<IncomingChainLink[]>([]);
+  const [allTests, setAllTests] = useState<Test[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
@@ -38,9 +39,9 @@ export function ChainPanel({ testId, readOnly = false }: Props) {
       setOutgoing(chain.outgoing);
       setIncoming(chain.incoming);
       // Exclude self and tests already linked outgoing
-      const linkedIds = new Set(chain.outgoing.map((l: any) => l.to_test_id));
+      const linkedIds = new Set(chain.outgoing.map((l) => l.to_test_id));
       linkedIds.add(testId);
-      setAllTests(tests.filter((t: any) => !linkedIds.has(t.id)));
+      setAllTests(tests.filter((t) => !linkedIds.has(t.id)));
     } catch (e: any) {
       setError(e.message);
     } finally {
@@ -71,7 +72,7 @@ export function ChainPanel({ testId, readOnly = false }: Props) {
     }
   }
 
-  async function handleToggleContinue(link: any) {
+  async function handleToggleContinue(link: OutgoingChainLink) {
     try {
       await api.chain.patch(link.id, { continue_on_failure: link.continue_on_failure ? 0 : 1 });
       flashSaved();

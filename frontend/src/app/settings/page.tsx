@@ -10,6 +10,7 @@ export default function SettingsPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   useEffect(() => {
     api.settings.get().then((s) => { setSettings(s); setLoading(false); });
@@ -20,16 +21,27 @@ export default function SettingsPage() {
 
   async function handleSave() {
     setSaving(true);
-    await api.settings.update(settings);
-    setSaving(false);
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
+    setSaveError(null);
+    try {
+      await api.settings.update(settings);
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2000);
+    } catch (e: unknown) {
+      setSaveError(e instanceof Error ? e.message : "Failed to save settings");
+    } finally {
+      setSaving(false);
+    }
   }
 
   if (loading) return <div className="text-muted text-sm">Loading...</div>;
 
   return (
     <div className="space-y-5 max-w-xl">
+      {saveError && (
+        <div className="bg-red-900/30 border border-red-700/40 text-red-400 text-sm px-4 py-3 rounded">
+          {saveError}
+        </div>
+      )}
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-semibold text-slate-100">Settings</h1>
         <Button variant="primary" size="sm" onClick={handleSave} disabled={saving}>

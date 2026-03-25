@@ -14,6 +14,15 @@ function parseSessionToken(cookieHeader: string | undefined): string | undefined
 
 const ARTIFACTS_PATH = process.env.ARTIFACTS_PATH || "./data/artifacts";
 
+const VALID_STATUSES = new Set(["pending", "running", "passed", "failed", "error"]);
+
+function applyStatusFilter(q: string, p: (string | number)[], statusFilter: string[]): string {
+  if (statusFilter.length === 0) return q;
+  if (statusFilter.length === 1) { p.push(statusFilter[0]); return q + " AND status = ?"; }
+  statusFilter.forEach((s) => p.push(s));
+  return q + ` AND status IN (${statusFilter.map(() => "?").join(",")})`;
+}
+
 function canAccessTest(userId: string, userRole: string, testId: string): boolean {
   if (userRole === "admin") return true;
   const test = db.prepare("SELECT user_id FROM tests WHERE id = ?").get(testId) as Pick<Test, "user_id"> | undefined;
@@ -39,17 +48,9 @@ export async function runsRoutes(app: FastifyInstance) {
     let query: string;
     const params: (string | number)[] = [];
 
-    const VALID_STATUSES = new Set(["pending", "running", "passed", "failed", "error"]);
     const statusFilter = status
       ? status.split(",").map((s) => s.trim()).filter((s) => VALID_STATUSES.has(s))
       : [];
-
-    function applyStatusFilter(q: string, p: (string | number)[]): string {
-      if (statusFilter.length === 0) return q;
-      if (statusFilter.length === 1) { p.push(statusFilter[0]); return q + " AND status = ?"; }
-      statusFilter.forEach((s) => p.push(s));
-      return q + ` AND status IN (${statusFilter.map(() => "?").join(",")})`;
-    }
 
     if (isAdmin) {
       query = "SELECT runs.* FROM runs";
@@ -73,7 +74,7 @@ export async function runsRoutes(app: FastifyInstance) {
       params.push(req.user!.id, req.user!.id, req.user!.role);
       if (test_id) { query += " AND runs.test_id = ?"; params.push(test_id); }
       if (triggered_by) { query += " AND runs.triggered_by_run_id = ?"; params.push(triggered_by); }
-      query = applyStatusFilter(query, params);
+      query = applyStatusFilter(query, params, statusFilter);
     }
     query += " ORDER BY runs.created_at DESC LIMIT ?";
     params.push(limitNum);

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { formatDistanceToNow } from "date-fns";
 import { api } from "@/lib/api";
+import type { Test } from "@/types";
 import { Button } from "@/components/ui/Button";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { Plus, Play, Copy, Trash2, Search } from "lucide-react";
@@ -11,7 +12,7 @@ import { useRouter } from "next/navigation";
 
 export default function TestsPage() {
   const router = useRouter();
-  const [tests, setTests] = useState<any[]>([]);
+  const [tests, setTests] = useState<Test[]>([]);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
   const [running, setRunning] = useState<string | null>(null);
@@ -22,6 +23,8 @@ export default function TestsPage() {
     try {
       const t = await api.tests.list(search ? { search } : undefined);
       setTests(t);
+    } catch {
+      // errors leave list empty — user can retry via search change
     } finally {
       setLoading(false);
     }

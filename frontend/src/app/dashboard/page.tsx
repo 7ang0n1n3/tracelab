@@ -4,13 +4,14 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { formatDistanceToNow } from "date-fns";
 import { api } from "@/lib/api";
+import type { Run, Test } from "@/types";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { Button } from "@/components/ui/Button";
 import { Plus, RefreshCw } from "lucide-react";
 
 export default function DashboardPage() {
-  const [runs, setRuns] = useState<any[]>([]);
-  const [tests, setTests] = useState<any[]>([]);
+  const [runs, setRuns] = useState<Run[]>([]);
+  const [tests, setTests] = useState<Test[]>([]);
   const [loading, setLoading] = useState(true);
 
   async function load() {
@@ -19,8 +20,8 @@ export default function DashboardPage() {
       const [r, t] = await Promise.all([api.runs.list({ limit: "20" }), api.tests.list()]);
       setRuns(r);
       setTests(t);
-    } catch (e) {
-      console.error(e);
+    } catch {
+      // errors leave stats at zero — user can retry via Refresh
     } finally {
       setLoading(false);
     }

@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { format } from "date-fns";
 import { api } from "@/lib/api";
+import type { RunDetail, Test, Run, ArtifactFile } from "@/types";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { Button } from "@/components/ui/Button";
 import { ArrowLeft, RefreshCw, Image as ImageIcon, Video, Download, PackageOpen } from "lucide-react";
@@ -113,20 +114,20 @@ function RunningOverlay({ elapsed }: { elapsed: number }) {
 export default function RunDetailPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
-  const [run, setRun] = useState<any>(null);
-  const [test, setTest] = useState<any>(null);
-  const [triggeredRuns, setTriggeredRuns] = useState<any[]>([]);
+  const [run, setRun] = useState<RunDetail | null>(null);
+  const [test, setTest] = useState<Test | null>(null);
+  const [triggeredRuns, setTriggeredRuns] = useState<Run[]>([]);
   const [chainTests, setChainTests] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [liveLog, setLiveLog] = useState<string>("");
   const [lightbox, setLightbox] = useState<string | null>(null);
-  const [videos, setVideos] = useState<{ name: string; url: string }[]>([]);
+  const [videos, setVideos] = useState<ArtifactFile[]>([]);
   const [elapsed, setElapsed] = useState(0);
   const logRef = useRef<HTMLPreElement>(null);
   const esRef = useRef<EventSource | null>(null);
   const startedAtRef = useRef<number | null>(null);
 
-  async function load() {
+  const load = useCallback(async () => {
     setLoading(true);
     try {
       const r = await api.runs.get(id);
@@ -134,29 +135,29 @@ export default function RunDetailPage() {
       if (r.test_id) {
         api.tests.get(r.test_id).then(setTest).catch(() => {});
       }
-      api.artifacts.list(id).then(({ files }: { files: { name: string; url: string }[] }) => {
-        setVideos(files.filter((f: { name: string; url: string }) =>
-          f.name.endsWith(".webm") || f.name.endsWith(".mp4")
-        ));
+      api.artifacts.list(id).then(({ files }) => {
+        setVideos(files.filter((f) => f.name.endsWith(".webm") || f.name.endsWith(".mp4")));
       }).catch(() => {});
       // Load runs triggered by this one (chain children)
-      api.runs.list({ triggered_by: id, limit: "50" }).then(async (triggered: any[]) => {
+      api.runs.list({ triggered_by: id, limit: "50" }).then(async (triggered) => {
         setTriggeredRuns(triggered);
         if (triggered.length > 0) {
-          const testIds = [...new Set(triggered.map((tr: any) => tr.test_id))];
+          const testIds = [...new Set(triggered.map((tr) => tr.test_id))];
           const names: Record<string, string> = {};
           await Promise.all(testIds.map((tid) =>
-            api.tests.get(tid as string).then((t: any) => { names[tid as string] = t.name; }).catch(() => {})
+            api.tests.get(tid).then((t) => { names[tid] = t.name; }).catch(() => {})
           ));
           setChainTests(names);
         }
       }).catch(() => {});
+    } catch {
+      // non-blocking: run display degrades gracefully
     } finally {
       setLoading(false);
     }
-  }
+  }, [id]);
 
-  function connectSSE() {
+  const connectSSE = useCallback(() => {
     if (esRef.current) esRef.current.close();
     const es = new EventSource(`/api/runs/${id}/logs`);
     esRef.current = es;
@@ -189,16 +190,16 @@ export default function RunDetailPage() {
       es.close();
       esRef.current = null;
     };
-  }
+  }, [id, router]);
 
   useEffect(() => {
     load().then(() => {
       api.runs.get(id).then((r) => {
         if (!TERMINAL_STATUSES.has(r.status)) connectSSE();
-      });
+      }).catch(() => {});
     });
     return () => { esRef.current?.close(); };
-  }, [id]);
+  }, [id, load, connectSSE]);
 
   useEffect(() => {
     const interval = setInterval(async () => {

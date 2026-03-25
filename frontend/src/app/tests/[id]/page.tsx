@@ -7,6 +7,7 @@ import Link from "next/link";
 import { formatDistanceToNow } from "date-fns";
 import { clsx } from "clsx";
 import { api } from "@/lib/api";
+import type { TestDetail, Run, AuthState } from "@/types";
 import { Button } from "@/components/ui/Button";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { RecorderPanel } from "@/components/recorder/RecorderPanel";
@@ -32,9 +33,9 @@ export default function TestDetailPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const { theme } = useTheme();
-  const [test, setTest] = useState<any>(null);
-  const [runs, setRuns] = useState<any[]>([]);
-  const [authStates, setAuthStates] = useState<any[]>([]);
+  const [test, setTest] = useState<TestDetail | null>(null);
+  const [runs, setRuns] = useState<Run[]>([]);
+  const [authStates, setAuthStates] = useState<AuthState[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [running, setRunning] = useState(false);
@@ -86,6 +87,8 @@ export default function TestDetailPage() {
         setTags("");
       }
       setDirty(false);
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : "Failed to load test");
     } finally {
       setLoading(false);
     }
@@ -102,7 +105,7 @@ export default function TestDetailPage() {
         name, description, app_name: appName, base_url: baseUrl,
         script, auth_state_id: authStateId || null, use_auth: useAuth ? 1 : 0,
         tags: tagList.length ? JSON.stringify(tagList) : null,
-        browser: browser || null,
+        browser: (browser || null) as "chromium" | "firefox" | "webkit" | null,
         capture_video: captureVideo === "" ? null : captureVideo === "true" ? 1 : 0,
         headless: headless === "" ? null : headless === "true" ? 1 : 0,
         retry_count: retryCount === "" ? null : parseInt(retryCount, 10),
@@ -305,7 +308,7 @@ export default function TestDetailPage() {
                 <select value={authStateId} disabled={isReadOnly} onChange={(e) => { setAuthStateId(e.target.value); markDirty(); }}
                   className={`bg-bg-elevated border border-border rounded px-3 py-1.5 text-sm text-slate-200 focus:outline-none focus:border-accent${isReadOnly ? " opacity-60 cursor-default" : ""}`}>
                   <option value="">— None —</option>
-                  {authStates.map((a: any) => (
+                  {authStates.map((a) => (
                     <option key={a.id} value={a.id}>{a.name}{a.app_name ? ` (${a.app_name})` : ""}</option>
                   ))}
                 </select>
