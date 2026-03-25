@@ -83,6 +83,18 @@ export interface TestShare {
   created_at: number;
 }
 
+export interface Schedule {
+  id: string;
+  test_id: string;
+  label: string | null;
+  cron_expr: string;
+  enabled: number; // 0 or 1
+  last_run_at: number | null;
+  next_run_at: number | null;
+  created_at: number;
+  created_by: string | null;
+}
+
 export interface Setting {
   key: string;
   value: string;

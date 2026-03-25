@@ -11,7 +11,9 @@ import { authRoutes } from "./routes/auth";
 import { usersRoutes } from "./routes/users";
 import { testSharesRoutes } from "./routes/test-shares";
 import { chainLinksRoutes } from "./routes/chain-links";
+import { schedulesRoutes } from "./routes/schedules";
 import { purgeExpiredSessions } from "./auth/session";
+import { initScheduler } from "./scheduler/index";
 
 const app = Fastify({ logger: true });
 
@@ -44,6 +46,9 @@ async function main() {
   // Purge expired sessions every hour
   setInterval(purgeExpiredSessions, 60 * 60 * 1000);
 
+  // Start cron scheduler
+  initScheduler();
+
   // CSRF: reject state-changing requests from unexpected origins
   // Requests without Origin (server-to-server proxy) are allowed
   app.addHook("preValidation", async (req, reply) => {
@@ -68,6 +73,7 @@ async function main() {
   await app.register(usersRoutes);
   await app.register(testSharesRoutes);
   await app.register(chainLinksRoutes);
+  await app.register(schedulesRoutes);
 
   const port = parseInt(process.env.PORT || "4000", 10);
   await app.listen({ port, host: "0.0.0.0" });

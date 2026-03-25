@@ -89,6 +89,24 @@ export function initSchema() {
   try { db.exec("ALTER TABLE runs ADD COLUMN chain_run_id TEXT"); } catch {}
   try { db.exec("ALTER TABLE runs ADD COLUMN triggered_by_run_id TEXT"); } catch {}
 
+  // Schedules table
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS schedules (
+      id TEXT PRIMARY KEY,
+      test_id TEXT NOT NULL REFERENCES tests(id) ON DELETE CASCADE,
+      label TEXT,
+      cron_expr TEXT NOT NULL,
+      enabled INTEGER NOT NULL DEFAULT 1,
+      last_run_at INTEGER,
+      next_run_at INTEGER,
+      created_at INTEGER NOT NULL,
+      created_by TEXT REFERENCES users(id) ON DELETE SET NULL
+    );
+  `);
+
+  // Runs: add schedule_id if missing
+  try { db.exec("ALTER TABLE runs ADD COLUMN schedule_id TEXT REFERENCES schedules(id) ON DELETE SET NULL"); } catch {}
+
   // Chain links table
   db.exec(`
     CREATE TABLE IF NOT EXISTS chain_links (

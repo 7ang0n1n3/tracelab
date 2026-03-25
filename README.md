@@ -2,7 +2,7 @@
   <img src="tracelab_logo.png" alt="TraceLab" width="260" />
 </p>
 
-# TraceLab `v0.1.13`
+# TraceLab `v0.1.14`
 
 Self-hosted browser test automation platform. Write, run, and monitor Playwright-based tests through a web UI — no CI pipeline required.
 
@@ -14,6 +14,7 @@ Self-hosted browser test automation platform. Write, run, and monitor Playwright
 - **Artifacts** — Automatic screenshots and video recording per run; export any run as a ZIP (screenshots, video, trace, log)
 - **Retry on failure** — auto-retry failed/errored runs; system-wide default with per-test override (0–10 retries)
 - **Dependency chaining** — chain tests into sequential pipelines (A→B→C→D) with per-link continue-on-failure control and cycle detection
+- **Scheduled runs** — time-based triggers per test; friendly frequency picker (every N minutes, hourly, daily, weekly, monthly) with no cron knowledge required; enable/disable per schedule; global `/schedules` view and per-test panel
 - **Run queue** — live view of all pending and running tests with elapsed timers and sidebar count badge
 - **Auth states** — Capture and reuse browser login sessions across tests
 - **Test sharing** — Share tests with specific users or entire roles (read-only or read-write)

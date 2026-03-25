@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { formatDistanceToNow } from "date-fns";
+import { clsx } from "clsx";
 import { api } from "@/lib/api";
 import { Button } from "@/components/ui/Button";
 import { StatusBadge } from "@/components/ui/StatusBadge";
@@ -14,8 +15,18 @@ import { useTheme } from "@/context/ThemeContext";
 import { SharesPanel } from "@/components/test/SharesPanel";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { ChainPanel } from "@/components/test/ChainPanel";
+import { SchedulesPanel } from "@/components/test/SchedulesPanel";
 
 const MonacoEditor = dynamic(() => import("@monaco-editor/react"), { ssr: false });
+
+type Tab = "settings" | "chain" | "schedules" | "sharing";
+
+const TABS: { id: Tab; label: string }[] = [
+  { id: "settings",  label: "Settings" },
+  { id: "chain",     label: "Dependency Chain" },
+  { id: "schedules", label: "Schedules" },
+  { id: "sharing",   label: "Sharing" },
+];
 
 export default function TestDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -30,6 +41,7 @@ export default function TestDetailPage() {
   const [error, setError] = useState<string | null>(null);
   const [dirty, setDirty] = useState(false);
   const [confirm, setConfirm] = useState<{ message: string; onConfirm: () => void } | null>(null);
+  const [activeTab, setActiveTab] = useState<Tab>("settings");
 
   // Editable fields
   const [name, setName] = useState("");
@@ -67,7 +79,6 @@ export default function TestDetailPage() {
       setCaptureVideo(t.capture_video === null || t.capture_video === undefined ? "" : t.capture_video === 1 ? "true" : "false");
       setHeadless(t.headless === null || t.headless === undefined ? "" : t.headless === 1 ? "true" : "false");
       setRetryCount(t.retry_count === null || t.retry_count === undefined ? "" : String(t.retry_count));
-      // Parse tags from JSON array to comma string
       try {
         const parsed = JSON.parse(t.tags || "[]");
         setTags(Array.isArray(parsed) ? parsed.join(", ") : "");
@@ -127,6 +138,8 @@ export default function TestDetailPage() {
   }
 
   const markDirty = () => setDirty(true);
+  const inputClass = (ro: boolean) =>
+    `w-full bg-bg-elevated border border-border rounded px-3 py-2 text-sm text-slate-200 placeholder:text-muted focus:outline-none focus:border-accent${ro ? " opacity-60 cursor-default" : ""}`;
 
   if (loading) return <div className="text-muted text-sm">Loading...</div>;
   if (!test) return <div className="text-muted text-sm">Test not found.</div>;
@@ -145,6 +158,7 @@ export default function TestDetailPage() {
           onCancel={() => setConfirm(null)}
         />
       )}
+
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
@@ -185,165 +199,200 @@ export default function TestDetailPage() {
         </div>
       )}
 
-      {/* Metadata */}
-      <div className="bg-bg-surface border border-border rounded-lg p-5 space-y-4">
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="block text-xs text-muted mb-1">Test Name</label>
-            <input value={name} readOnly={isReadOnly} onChange={(e) => { setName(e.target.value); markDirty(); }}
-              className={`w-full bg-bg-elevated border border-border rounded px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-accent${isReadOnly ? " opacity-60 cursor-default" : ""}`} />
-          </div>
-          <div>
-            <label className="block text-xs text-muted mb-1">App / System</label>
-            <input value={appName} readOnly={isReadOnly} onChange={(e) => { setAppName(e.target.value); markDirty(); }}
-              className={`w-full bg-bg-elevated border border-border rounded px-3 py-2 text-sm text-slate-200 placeholder:text-muted focus:outline-none focus:border-accent${isReadOnly ? " opacity-60 cursor-default" : ""}`} />
-          </div>
-        </div>
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="block text-xs text-muted mb-1">Base URL</label>
-            <input value={baseUrl} readOnly={isReadOnly} onChange={(e) => { setBaseUrl(e.target.value); markDirty(); }}
-              className={`w-full bg-bg-elevated border border-border rounded px-3 py-2 text-sm text-slate-200 placeholder:text-muted focus:outline-none focus:border-accent${isReadOnly ? " opacity-60 cursor-default" : ""}`} />
-          </div>
-          <div>
-            <label className="block text-xs text-muted mb-1">Tags <span className="text-muted/60">(comma-separated)</span></label>
-            <input value={tags} readOnly={isReadOnly} onChange={(e) => { setTags(e.target.value); markDirty(); }}
-              placeholder="smoke, login, auth"
-              className={`w-full bg-bg-elevated border border-border rounded px-3 py-2 text-sm text-slate-200 placeholder:text-muted focus:outline-none focus:border-accent${isReadOnly ? " opacity-60 cursor-default" : ""}`} />
-          </div>
-        </div>
-        <div className="grid grid-cols-4 gap-4">
-          <div>
-            <label className="block text-xs text-muted mb-1">Browser <span className="text-muted/60">(overrides system default)</span></label>
-            <select value={browser} disabled={isReadOnly} onChange={(e) => { setBrowser(e.target.value); markDirty(); }}
-              className={`w-full bg-bg-elevated border border-border rounded px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-accent${isReadOnly ? " opacity-60 cursor-default" : ""}`}>
-              <option value="">System default</option>
-              <option value="chromium">Chromium</option>
-              <option value="firefox">Firefox</option>
-              <option value="webkit">WebKit (Safari)</option>
-            </select>
-          </div>
-          <div>
-            <label className="block text-xs text-muted mb-1">Record Video <span className="text-muted/60">(overrides system default)</span></label>
-            <select value={captureVideo} disabled={isReadOnly} onChange={(e) => { setCaptureVideo(e.target.value); markDirty(); }}
-              className={`w-full bg-bg-elevated border border-border rounded px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-accent${isReadOnly ? " opacity-60 cursor-default" : ""}`}>
-              <option value="">System default</option>
-              <option value="true">On</option>
-              <option value="false">Off</option>
-            </select>
-          </div>
-          <div>
-            <label className="block text-xs text-muted mb-1">Headless <span className="text-muted/60">(overrides system default)</span></label>
-            <select value={headless} disabled={isReadOnly} onChange={(e) => { setHeadless(e.target.value); markDirty(); }}
-              className={`w-full bg-bg-elevated border border-border rounded px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-accent${isReadOnly ? " opacity-60 cursor-default" : ""}`}>
-              <option value="">System default</option>
-              <option value="true">On</option>
-              <option value="false">Off</option>
-            </select>
-          </div>
-          <div>
-            <label className="block text-xs text-muted mb-1">Retry on Failure <span className="text-muted/60">(overrides system default)</span></label>
-            <select value={retryCount} disabled={isReadOnly} onChange={(e) => { setRetryCount(e.target.value); markDirty(); }}
-              className={`w-full bg-bg-elevated border border-border rounded px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-accent${isReadOnly ? " opacity-60 cursor-default" : ""}`}>
-              <option value="">System default</option>
-              <option value="0">0 — disabled</option>
-              <option value="1">1 retry</option>
-              <option value="2">2 retries</option>
-              <option value="3">3 retries</option>
-              <option value="5">5 retries</option>
-            </select>
-          </div>
-        </div>
-        <div>
-          <label className="block text-xs text-muted mb-1">Description</label>
-          <textarea value={description} readOnly={isReadOnly} onChange={(e) => { setDescription(e.target.value); markDirty(); }} rows={2}
-            className={`w-full bg-bg-elevated border border-border rounded px-3 py-2 text-sm text-slate-200 placeholder:text-muted focus:outline-none focus:border-accent resize-none${isReadOnly ? " opacity-60 cursor-default" : ""}`} />
-        </div>
+      {/* Tab bar */}
+      <div className="flex items-center gap-0 border-b border-border">
+        {TABS.map((tab) => (
+          <button
+            key={tab.id}
+            onClick={() => setActiveTab(tab.id)}
+            className={clsx(
+              "px-4 py-2.5 text-sm border-b-2 transition-colors -mb-px",
+              activeTab === tab.id
+                ? "border-accent text-accent-bright"
+                : "border-transparent text-muted hover:text-slate-200"
+            )}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
 
-        {/* Auth state */}
-        <div className="flex items-center gap-4">
-          <label className={`flex items-center gap-2 text-sm text-slate-300${isReadOnly ? " opacity-60" : " cursor-pointer"}`}>
-            <input type="checkbox" checked={useAuth} disabled={isReadOnly} onChange={(e) => { setUseAuth(e.target.checked); markDirty(); }}
-              className="accent-accent" />
-            Use Auth State
-          </label>
-          {useAuth && (
-            <select value={authStateId} disabled={isReadOnly} onChange={(e) => { setAuthStateId(e.target.value); markDirty(); }}
-              className={`bg-bg-elevated border border-border rounded px-3 py-1.5 text-sm text-slate-200 focus:outline-none focus:border-accent${isReadOnly ? " opacity-60 cursor-default" : ""}`}>
-              <option value="">— None —</option>
-              {authStates.map((a: any) => (
-                <option key={a.id} value={a.id}>{a.name}{a.app_name ? ` (${a.app_name})` : ""}</option>
-              ))}
-            </select>
+      {/* Tab: Settings */}
+      {activeTab === "settings" && (
+        <div className="space-y-5">
+          {/* Metadata */}
+          <div className="bg-bg-surface border border-border rounded-lg p-5 space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs text-muted mb-1">Test Name</label>
+                <input value={name} readOnly={isReadOnly} onChange={(e) => { setName(e.target.value); markDirty(); }}
+                  className={inputClass(isReadOnly)} />
+              </div>
+              <div>
+                <label className="block text-xs text-muted mb-1">App / System</label>
+                <input value={appName} readOnly={isReadOnly} onChange={(e) => { setAppName(e.target.value); markDirty(); }}
+                  className={inputClass(isReadOnly)} />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs text-muted mb-1">Base URL</label>
+                <input value={baseUrl} readOnly={isReadOnly} onChange={(e) => { setBaseUrl(e.target.value); markDirty(); }}
+                  className={inputClass(isReadOnly)} />
+              </div>
+              <div>
+                <label className="block text-xs text-muted mb-1">Tags <span className="text-muted/60">(comma-separated)</span></label>
+                <input value={tags} readOnly={isReadOnly} onChange={(e) => { setTags(e.target.value); markDirty(); }}
+                  placeholder="smoke, login, auth"
+                  className={inputClass(isReadOnly)} />
+              </div>
+            </div>
+            <div className="grid grid-cols-4 gap-4">
+              <div>
+                <label className="block text-xs text-muted mb-1">Browser <span className="text-muted/60">(overrides default)</span></label>
+                <select value={browser} disabled={isReadOnly} onChange={(e) => { setBrowser(e.target.value); markDirty(); }}
+                  className={inputClass(isReadOnly)}>
+                  <option value="">System default</option>
+                  <option value="chromium">Chromium</option>
+                  <option value="firefox">Firefox</option>
+                  <option value="webkit">WebKit (Safari)</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs text-muted mb-1">Record Video <span className="text-muted/60">(overrides default)</span></label>
+                <select value={captureVideo} disabled={isReadOnly} onChange={(e) => { setCaptureVideo(e.target.value); markDirty(); }}
+                  className={inputClass(isReadOnly)}>
+                  <option value="">System default</option>
+                  <option value="true">On</option>
+                  <option value="false">Off</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs text-muted mb-1">Headless <span className="text-muted/60">(overrides default)</span></label>
+                <select value={headless} disabled={isReadOnly} onChange={(e) => { setHeadless(e.target.value); markDirty(); }}
+                  className={inputClass(isReadOnly)}>
+                  <option value="">System default</option>
+                  <option value="true">On</option>
+                  <option value="false">Off</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs text-muted mb-1">Retry on Failure <span className="text-muted/60">(overrides default)</span></label>
+                <select value={retryCount} disabled={isReadOnly} onChange={(e) => { setRetryCount(e.target.value); markDirty(); }}
+                  className={inputClass(isReadOnly)}>
+                  <option value="">System default</option>
+                  <option value="0">0 — disabled</option>
+                  <option value="1">1 retry</option>
+                  <option value="2">2 retries</option>
+                  <option value="3">3 retries</option>
+                  <option value="5">5 retries</option>
+                </select>
+              </div>
+            </div>
+            <div>
+              <label className="block text-xs text-muted mb-1">Description</label>
+              <textarea value={description} readOnly={isReadOnly} onChange={(e) => { setDescription(e.target.value); markDirty(); }} rows={2}
+                className={`w-full bg-bg-elevated border border-border rounded px-3 py-2 text-sm text-slate-200 placeholder:text-muted focus:outline-none focus:border-accent resize-none${isReadOnly ? " opacity-60 cursor-default" : ""}`} />
+            </div>
+            {/* Auth state */}
+            <div className="flex items-center gap-4">
+              <label className={`flex items-center gap-2 text-sm text-slate-300${isReadOnly ? " opacity-60" : " cursor-pointer"}`}>
+                <input type="checkbox" checked={useAuth} disabled={isReadOnly} onChange={(e) => { setUseAuth(e.target.checked); markDirty(); }}
+                  className="accent-accent" />
+                Use Auth State
+              </label>
+              {useAuth && (
+                <select value={authStateId} disabled={isReadOnly} onChange={(e) => { setAuthStateId(e.target.value); markDirty(); }}
+                  className={`bg-bg-elevated border border-border rounded px-3 py-1.5 text-sm text-slate-200 focus:outline-none focus:border-accent${isReadOnly ? " opacity-60 cursor-default" : ""}`}>
+                  <option value="">— None —</option>
+                  {authStates.map((a: any) => (
+                    <option key={a.id} value={a.id}>{a.name}{a.app_name ? ` (${a.app_name})` : ""}</option>
+                  ))}
+                </select>
+              )}
+            </div>
+          </div>
+
+          {/* Recorder */}
+          {!isReadOnly && (
+            <RecorderPanel
+              defaultUrl={baseUrl}
+              onScript={(s) => { setScript(s); markDirty(); }}
+            />
+          )}
+
+          {/* Script editor */}
+          <div className="bg-bg-surface border border-border rounded-lg overflow-hidden">
+            <div className="px-4 py-2.5 border-b border-border text-xs text-muted flex items-center justify-between">
+              <span>Playwright Script</span>
+              <span className="text-yellow-700">No import/require — bare async code only</span>
+            </div>
+            <MonacoEditor
+              height="420px"
+              language="javascript"
+              value={script}
+              onChange={(v) => { if (!isReadOnly) { setScript(v ?? ""); markDirty(); } }}
+              theme={theme === "dark" ? "vs-dark" : "vs"}
+              options={{
+                minimap: { enabled: false },
+                fontSize: 13,
+                fontFamily: "JetBrains Mono, Fira Code, monospace",
+                scrollBeyondLastLine: false,
+                wordWrap: "on",
+                padding: { top: 12 },
+                readOnly: isReadOnly,
+              }}
+            />
+          </div>
+
+          {/* Recent runs */}
+          {runs.length > 0 && (
+            <div className="bg-bg-surface border border-border rounded-lg overflow-hidden">
+              <div className="px-4 py-3 border-b border-border text-sm font-medium text-slate-300">
+                Recent Runs
+              </div>
+              <table className="w-full text-sm">
+                <tbody>
+                  {runs.map((run) => (
+                    <tr key={run.id} className="border-b border-border/50 hover:bg-bg-elevated transition-colors">
+                      <td className="px-4 py-2.5"><StatusBadge status={run.status} /></td>
+                      <td className="px-4 py-2.5 text-muted text-xs font-mono">
+                        {run.duration_ms ? `${(run.duration_ms / 1000).toFixed(1)}s` : "—"}
+                      </td>
+                      <td className="px-4 py-2.5 text-muted text-xs">
+                        {run.started_at ? formatDistanceToNow(run.started_at, { addSuffix: true }) : "—"}
+                      </td>
+                      <td className="px-4 py-2.5 text-right">
+                        <Link href={`/runs/${run.id}`} className="text-xs text-accent-bright hover:underline">
+                          View →
+                        </Link>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
         </div>
-      </div>
-
-      {/* Recorder */}
-      {!isReadOnly && (
-        <RecorderPanel
-          defaultUrl={baseUrl}
-          onScript={(s) => { setScript(s); markDirty(); }}
-        />
       )}
 
-      {/* Script editor */}
-      <div className="bg-bg-surface border border-border rounded-lg overflow-hidden">
-        <div className="px-4 py-2.5 border-b border-border text-xs text-muted flex items-center justify-between">
-          <span>Playwright Script</span>
-          <span className="text-yellow-700">No import/require — bare async code only</span>
-        </div>
-        <MonacoEditor
-          height="420px"
-          language="javascript"
-          value={script}
-          onChange={(v) => { if (!isReadOnly) { setScript(v ?? ""); markDirty(); } }}
-          theme={theme === "dark" ? "vs-dark" : "vs"}
-          options={{
-            minimap: { enabled: false },
-            fontSize: 13,
-            fontFamily: "JetBrains Mono, Fira Code, monospace",
-            scrollBeyondLastLine: false,
-            wordWrap: "on",
-            padding: { top: 12 },
-            readOnly: isReadOnly,
-          }}
-        />
-      </div>
+      {/* Tab: Dependency Chain */}
+      {activeTab === "chain" && (
+        <ChainPanel testId={id} readOnly={isReadOnly} />
+      )}
 
-      {/* Chain */}
-      <ChainPanel testId={id} readOnly={isReadOnly} />
+      {/* Tab: Schedules */}
+      {activeTab === "schedules" && (
+        <SchedulesPanel testId={id} readOnly={isReadOnly} />
+      )}
 
-      {/* Sharing */}
-      {canShare && <SharesPanel testId={id} />}
-
-      {/* Run history */}
-      {runs.length > 0 && (
-        <div className="bg-bg-surface border border-border rounded-lg overflow-hidden">
-          <div className="px-4 py-3 border-b border-border text-sm font-medium text-slate-300">
-            Recent Runs
-          </div>
-          <table className="w-full text-sm">
-            <tbody>
-              {runs.map((run) => (
-                <tr key={run.id} className="border-b border-border/50 hover:bg-bg-elevated transition-colors">
-                  <td className="px-4 py-2.5"><StatusBadge status={run.status} /></td>
-                  <td className="px-4 py-2.5 text-muted text-xs font-mono">
-                    {run.duration_ms ? `${(run.duration_ms / 1000).toFixed(1)}s` : "—"}
-                  </td>
-                  <td className="px-4 py-2.5 text-muted text-xs">
-                    {run.started_at ? formatDistanceToNow(run.started_at, { addSuffix: true }) : "—"}
-                  </td>
-                  <td className="px-4 py-2.5 text-right">
-                    <Link href={`/runs/${run.id}`} className="text-xs text-accent-bright hover:underline">
-                      View →
-                    </Link>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+      {/* Tab: Sharing */}
+      {activeTab === "sharing" && (
+        canShare
+          ? <SharesPanel testId={id} />
+          : <div className="bg-bg-surface border border-border rounded-lg px-4 py-6 text-sm text-muted text-center">
+              Owner or admin access required to manage sharing.
+            </div>
       )}
     </div>
   );

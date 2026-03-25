@@ -16,14 +16,16 @@ import {
   Sun,
   Moon,
   ListOrdered,
+  Clock,
 } from "lucide-react";
 import { useTheme } from "@/context/ThemeContext";
 
 const nav = [
   { href: "/dashboard", label: "Dashboard",    icon: LayoutDashboard },
   { href: "/tests",     label: "Tests",        icon: FlaskConical },
-  { href: "/queue",     label: "Run Queue",    icon: ListOrdered },
-  { href: "/runs",      label: "Test Results", icon: PlayCircle },
+  { href: "/queue",      label: "Run Queue",    icon: ListOrdered },
+  { href: "/runs",       label: "Test Results", icon: PlayCircle },
+  { href: "/schedules",  label: "Schedules",    icon: Clock },
   { href: "/auth",      label: "Auth States",  icon: KeyRound },
   { href: "/settings",  label: "Settings",     icon: Settings },
 ];
@@ -73,7 +75,7 @@ export function Sidebar() {
       {/* Logo */}
       <div className="flex flex-col items-center justify-center px-4 py-4 border-b border-border gap-1">
         <Image src="/tracelab_logo.png" alt="TraceLab" width={70} height={20} style={{ objectFit: "contain" }} />
-        <span className="text-[10px] text-muted">v0.1.13</span>
+        <span className="text-[10px] text-muted">v0.1.14</span>
       </div>
 
       {/* Nav */}

@@ -93,6 +93,20 @@ export const api = {
       apiFetch<{ ok: boolean }>("/auth/change-password", { method: "POST", body: JSON.stringify(data) }),
   },
 
+  // Schedules
+  schedules: {
+    list: (params?: Record<string, string>) => {
+      const qs = params ? "?" + new URLSearchParams(params).toString() : "";
+      return apiFetch<any[]>(`/schedules${qs}`);
+    },
+    get: (id: string) => apiFetch<any>(`/schedules/${id}`),
+    create: (data: { test_id: string; cron_expr: string; label?: string }) =>
+      apiFetch<any>("/schedules", { method: "POST", body: JSON.stringify(data) }),
+    patch: (id: string, data: { cron_expr?: string; label?: string; enabled?: number }) =>
+      apiFetch<any>(`/schedules/${id}`, { method: "PATCH", body: JSON.stringify(data) }),
+    delete: (id: string) => apiFetch<void>(`/schedules/${id}`, { method: "DELETE" }),
+  },
+
   // Chain links
   chain: {
     get: (testId: string) => apiFetch<{ outgoing: any[]; incoming: any[] }>(`/tests/${testId}/chain`),

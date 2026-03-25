@@ -13,7 +13,8 @@
     "@fastify/static": "^7.0.1",
     "@fastify/multipart": "^8.1.0",
     "uuid": "^9.0.0",
-    "axios": "^1.6.8"
+    "axios": "^1.6.8",
+    "cron-parser": "^4.9.0"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",

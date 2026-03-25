@@ -6,6 +6,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [0.1.14] — 2026-03-25
+
+### Added
+- **Scheduled runs** — time-based triggers for tests; a new `schedules` table stores cron expressions, enabled state, and last/next run timestamps; the backend scheduler checks every 60 seconds and dispatches any due runs via `dispatchRun()`; each triggered run records the originating `schedule_id`; schedules are owned by tests and respect the same access control (owner, write, admin)
+- **Schedule builder UI** — users never write cron syntax; a friendly picker offers: Every 15/30 minutes, Every hour, Every 2/6/12 hours, Every day (+ time), Every weekday Mon–Fri (+ time), Every week on a chosen day (+ time), Every month on a chosen day (+ time); cron expressions are generated and stored transparently
+- **Global schedules page** (`/schedules`) — lists all schedules the current user can access; columns: Test, Schedule (human-readable), Next Run, Last Run, Status (active/disabled); inline enable/disable toggle and delete with confirmation; "New Schedule" form using the schedule builder
+- **Per-test Schedules tab** — test detail page is now tabbed (Settings · Dependency Chain · Schedules · Sharing); Schedules tab shows all schedules for the test with enable/disable/delete actions and an inline "Add schedule" form
+- `GET /api/schedules`, `POST /api/schedules`, `PATCH /api/schedules/:id`, `DELETE /api/schedules/:id` REST endpoints with full access control
+- `cron-parser` added as a backend dependency for computing next-occurrence timestamps from cron expressions
+- **Tabbed test detail page** — test editor reorganised into four tabs: Settings (metadata, recorder, script, recent runs), Dependency Chain, Schedules, Sharing; header with test name, Run/Save/Delete actions, and Unsaved badge remains fixed above the tabs
+
+---
+
 ## [0.1.13] — 2026-03-23
 
 ### Added
