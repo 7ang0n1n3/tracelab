@@ -75,11 +75,14 @@ Once running, open [http://localhost:3000](http://localhost:3000) and sign in wi
 
 Environment variables can be set in a `.env` file at the project root:
 
-| Variable        | Default | Description              |
-|-----------------|---------|--------------------------|
-| `FRONTEND_PORT` | `3000`  | Frontend port            |
-| `BACKEND_PORT`  | `4000`  | Backend API port         |
-| `RUNNER_PORT`   | `5000`  | Test runner port         |
+| Variable        | Default | Description                                                    |
+|-----------------|---------|----------------------------------------------------------------|
+| `FRONTEND_PORT` | `3000`  | Frontend port                                                  |
+| `BACKEND_PORT`  | `4000`  | Backend API port                                               |
+| `RUNNER_PORT`   | `5000`  | Test runner port                                               |
+| `NOVNC_PORT`    | `6080`  | noVNC port for live browser view during headed runs            |
+| `RUNNER_SECRET` | *(none)*| Shared secret between backend and runner (set for security)    |
+| `HTTPS_ONLY`    | `false` | Set to `true` to mark session cookies as Secure (HTTPS only)  |
 
 ## Writing Tests
 
@@ -97,15 +100,20 @@ log('Login complete');
 
 ### Available globals
 
-| Global           | Description                                 |
-|------------------|---------------------------------------------|
-| `page`           | Playwright `Page` instance                  |
-| `context`        | Playwright `BrowserContext` instance        |
-| `browser`        | Playwright `Browser` instance               |
-| `takeScreenshot` | `(name?: string) => Promise<void>`          |
-| `log`            | `(message: string) => void`                 |
+| Global           | Type / Signature                                  | Description                                                  |
+|------------------|---------------------------------------------------|--------------------------------------------------------------|
+| `page`           | Playwright `Page`                                 | Current browser page                                         |
+| `context`        | Playwright `BrowserContext`                       | Browser context (cookies, storage)                           |
+| `browser`        | Playwright `Browser`                              | Browser instance                                             |
+| `baseUrl`        | `string \| null`                                  | The test's configured Base URL field (may be null)           |
+| `takeScreenshot` | `(name?: string) => Promise<string>`              | Saves a screenshot; returns the file path                    |
+| `log`            | `(message: string) => void`                       | Appends a timestamped line to the run log                    |
 
-> Note: `import` and `require` are not available. All Playwright APIs are accessible via the injected globals.
+> **Sandbox restrictions:** Scripts run inside a Node.js `vm` context — `import`, `require`, `process`, and other Node.js globals are not available. Certain Playwright APIs that could enable SSRF or credential exfiltration are also blocked: `page.route`, `page.exposeFunction`, `context.storageState`, `browser.newContext`, and similar methods.
+
+> **Failure screenshot:** If a test throws an uncaught error, a `failure.png` is automatically captured from the current page before the run is marked failed.
+
+> **Headed mode:** When a test runs with headless disabled, a live browser view is available via noVNC at `http://localhost:<NOVNC_PORT>` (default port 6080).
 
 ## Architecture
 
