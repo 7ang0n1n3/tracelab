@@ -46,6 +46,9 @@ export const api = {
     delete: (id: string) => apiFetch<void>(`/tests/${id}`, { method: "DELETE" }),
     duplicate: (id: string) => apiFetch<TestDetail>(`/tests/${id}/duplicate`, { method: "POST" }),
     run: (id: string) => apiFetch<{ runId: string }>(`/tests/${id}/run`, { method: "POST" }),
+    bulkDelete: (ids: string[]) => apiFetch<{ deleted: number }>("/tests/bulk-delete", { method: "POST", body: JSON.stringify({ ids }) }),
+    bulkRun: (ids: string[]) => apiFetch<{ runs: { testId: string; runId: string }[] }>("/tests/bulk-run", { method: "POST", body: JSON.stringify({ ids }) }),
+    bulkTag: (ids: string[], tags: string[], mode: "add" | "remove" | "set") => apiFetch<{ updated: number }>("/tests/bulk-tag", { method: "POST", body: JSON.stringify({ ids, tags, mode }) }),
     shares: {
       list: (testId: string) => apiFetch<TestShareDetail[]>(`/tests/${testId}/shares`),
       add: (testId: string, data: { grantee_type: string; grantee_id: string; permission: string }) =>
@@ -63,6 +66,7 @@ export const api = {
     },
     get: (id: string) => apiFetch<RunDetail>(`/runs/${id}`),
     delete: (id: string) => apiFetch<void>(`/runs/${id}`, { method: "DELETE" }),
+    bulkDelete: (ids: string[]) => apiFetch<{ deleted: number }>("/runs/bulk-delete", { method: "POST", body: JSON.stringify({ ids }) }),
   },
 
   // Auth states

@@ -162,6 +162,26 @@ export async function runsRoutes(app: FastifyInstance) {
     req.raw.on("close", () => clearInterval(interval));
   });
 
+  // Bulk delete runs
+  app.post("/api/runs/bulk-delete", { preHandler: requireAuth }, async (req, reply) => {
+    const body = req.body as { ids?: unknown };
+    if (!Array.isArray(body.ids) || body.ids.length === 0) {
+      return reply.status(400).send({ error: "ids must be a non-empty array" });
+    }
+    const ids = (body.ids as string[]).slice(0, 200);
+    let deleted = 0;
+    for (const id of ids) {
+      const run = db.prepare("SELECT * FROM runs WHERE id = ?").get(id) as Run | undefined;
+      if (!run) continue;
+      if (!canAccessTest(req.user!.id, req.user!.role, run.test_id)) continue;
+      const artifactDir = path.join(ARTIFACTS_PATH, id);
+      if (fs.existsSync(artifactDir)) fs.rmSync(artifactDir, { recursive: true });
+      db.prepare("DELETE FROM runs WHERE id = ?").run(id);
+      deleted++;
+    }
+    return { deleted };
+  });
+
   // Delete run
   app.delete("/api/runs/:id", { preHandler: requireAuth }, async (req, reply) => {
     const { id } = req.params as { id: string };

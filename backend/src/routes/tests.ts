@@ -207,6 +207,82 @@ export async function testsRoutes(app: FastifyInstance) {
     return reply.status(201).send(db.prepare("SELECT * FROM tests WHERE id = ?").get(newId));
   });
 
+  // Bulk delete tests
+  app.post("/api/tests/bulk-delete", { preHandler: requireAuth }, async (req, reply) => {
+    const body = req.body as { ids?: unknown };
+    if (!Array.isArray(body.ids) || body.ids.length === 0) {
+      return reply.status(400).send({ error: "ids must be a non-empty array" });
+    }
+    const ids = (body.ids as string[]).slice(0, 100);
+    let deleted = 0;
+    for (const id of ids) {
+      const test = db.prepare("SELECT * FROM tests WHERE id = ?").get(id) as Test | undefined;
+      if (!test) continue;
+      const access = getTestAccess(test, req.user!.id, req.user!.role);
+      if (access !== "owner" && access !== "admin") continue;
+      db.prepare("DELETE FROM tests WHERE id = ?").run(id);
+      deleted++;
+    }
+    return { deleted };
+  });
+
+  // Bulk run tests
+  app.post("/api/tests/bulk-run", { preHandler: requireAuth }, async (req, reply) => {
+    const body = req.body as { ids?: unknown };
+    if (!Array.isArray(body.ids) || body.ids.length === 0) {
+      return reply.status(400).send({ error: "ids must be a non-empty array" });
+    }
+    const ids = (body.ids as string[]).slice(0, 50);
+    const runs: { testId: string; runId: string }[] = [];
+    const now = Date.now();
+    for (const id of ids) {
+      const test = db.prepare("SELECT * FROM tests WHERE id = ?").get(id) as Test | undefined;
+      if (!test) continue;
+      const access = getTestAccess(test, req.user!.id, req.user!.role);
+      if (!access) continue;
+      const runId = uuidv4();
+      db.prepare("INSERT INTO runs (id, test_id, status, created_at) VALUES (?, ?, 'pending', ?)").run(runId, id, now);
+      req.log.info({ test_id: id, run_id: runId, actor: req.user!.username, event: "run_triggered" }, "Test run triggered (bulk)");
+      dispatchRun(runId, test).catch((err) => console.error("Run dispatch error:", err));
+      runs.push({ testId: id, runId });
+    }
+    return reply.status(202).send({ runs });
+  });
+
+  // Bulk tag tests
+  app.post("/api/tests/bulk-tag", { preHandler: requireAuth }, async (req, reply) => {
+    const body = req.body as { ids?: unknown; tags?: unknown; mode?: unknown };
+    if (!Array.isArray(body.ids) || body.ids.length === 0) {
+      return reply.status(400).send({ error: "ids must be a non-empty array" });
+    }
+    if (!Array.isArray(body.tags)) {
+      return reply.status(400).send({ error: "tags must be an array" });
+    }
+    const mode = ["add", "remove", "set"].includes(body.mode as string) ? (body.mode as "add" | "remove" | "set") : "add";
+    const newTags = (body.tags as unknown[]).map((t) => String(t).trim()).filter(Boolean).slice(0, 50);
+    const ids = (body.ids as string[]).slice(0, 100);
+    let updated = 0;
+    for (const id of ids) {
+      const test = db.prepare("SELECT * FROM tests WHERE id = ?").get(id) as Test | undefined;
+      if (!test) continue;
+      const access = getTestAccess(test, req.user!.id, req.user!.role);
+      if (!access || access === "read") continue;
+      let current: string[] = [];
+      try { current = JSON.parse(test.tags || "[]"); } catch { current = []; }
+      let nextTags: string[];
+      if (mode === "set") {
+        nextTags = newTags;
+      } else if (mode === "add") {
+        nextTags = [...new Set([...current, ...newTags])];
+      } else {
+        nextTags = current.filter((t) => !newTags.includes(t));
+      }
+      db.prepare("UPDATE tests SET tags = ?, updated_at = ? WHERE id = ?").run(JSON.stringify(nextTags), Date.now(), id);
+      updated++;
+    }
+    return { updated };
+  });
+
   // Trigger a run
   app.post("/api/tests/:id/run", { preHandler: requireAuth }, async (req, reply) => {
     const { id } = req.params as { id: string };

@@ -2,7 +2,7 @@
   <img src="tracelab_logo.png" alt="TraceLab" width="260" />
 </p>
 
-# TraceLab `v0.1.16`
+# TraceLab `v0.1.17`
 
 Self-hosted browser test automation platform. Write, run, and monitor Playwright-based tests through a web UI — no CI pipeline required.
 
@@ -17,6 +17,7 @@ Self-hosted browser test automation platform. Write, run, and monitor Playwright
 - **Scheduled runs** — time-based triggers per test; friendly frequency picker (every N minutes, hourly, daily, weekly, monthly) with no cron knowledge required; enable/disable per schedule; global `/schedules` view and per-test panel
 - **Run queue** — live view of all pending and running tests with elapsed timers and sidebar count badge
 - **Auth states** — Capture and reuse browser login sessions across tests
+- **Bulk operations** — Select multiple tests or runs; bulk delete, bulk run, or bulk tag tests with add/remove/replace modes
 - **Test sharing** — Share tests with specific users or entire roles (read-only or read-write)
 - **User accounts** — Role-based access (Admin, Dev, QA) with per-user data siloing
 - **Dashboard** — Run history, pass/fail trends, recent activity

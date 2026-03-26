@@ -1,6 +1,7 @@
+// /frontend/src/app/runs/page.tsx
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { formatDistanceToNow, format } from "date-fns";
 import { api } from "@/lib/api";
@@ -15,9 +16,12 @@ export default function RunsPage() {
   const [tests, setTests] = useState<Record<string, Test>>({});
   const [loading, setLoading] = useState(true);
   const [confirm, setConfirm] = useState<{ message: string; onConfirm: () => void } | null>(null);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const headerCheckRef = useRef<HTMLInputElement>(null);
 
   async function load() {
     setLoading(true);
+    setSelected(new Set());
     try {
       const [r, t] = await Promise.all([api.runs.list({ limit: "100" }), api.tests.list()]);
       setRuns(r);
@@ -31,12 +35,45 @@ export default function RunsPage() {
 
   useEffect(() => { load(); }, []);
 
+  useEffect(() => {
+    if (!headerCheckRef.current || runs.length === 0) return;
+    const allSelected = runs.every((r) => selected.has(r.id));
+    const someSelected = runs.some((r) => selected.has(r.id));
+    headerCheckRef.current.checked = allSelected;
+    headerCheckRef.current.indeterminate = someSelected && !allSelected;
+  }, [selected, runs]);
+
+  function toggleSelect(id: string) {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  }
+
+  function toggleSelectAll() {
+    const allSelected = runs.every((r) => selected.has(r.id));
+    setSelected(allSelected ? new Set() : new Set(runs.map((r) => r.id)));
+  }
+
   async function handleDelete(id: string) {
     setConfirm({
       message: "Delete this run and its artifacts?",
       onConfirm: async () => {
         setConfirm(null);
         await api.runs.delete(id);
+        load();
+      },
+    });
+  }
+
+  function handleBulkDelete() {
+    const count = selected.size;
+    setConfirm({
+      message: `Delete ${count} selected run${count !== 1 ? "s" : ""} and their artifacts?`,
+      onConfirm: async () => {
+        setConfirm(null);
+        await api.runs.bulkDelete(Array.from(selected));
         load();
       },
     });
@@ -63,6 +100,26 @@ export default function RunsPage() {
         </Button>
       </div>
 
+      {/* Bulk action bar */}
+      {selected.size > 0 && (
+        <div className="flex items-center gap-3 px-4 py-2.5 bg-accent/10 border border-accent/30 rounded-lg">
+          <span className="text-sm text-accent-bright font-medium">{selected.size} selected</span>
+          <div className="flex items-center gap-2 ml-auto">
+            <Button variant="ghost" size="sm" onClick={handleBulkDelete} className="text-red-400 hover:text-red-300">
+              <Trash2 size={11} />
+              Delete
+            </Button>
+            <button
+              type="button"
+              onClick={() => setSelected(new Set())}
+              className="text-xs text-muted hover:text-slate-300 transition-colors ml-1"
+            >
+              Clear
+            </button>
+          </div>
+        </div>
+      )}
+
       <div className="bg-bg-surface border border-border rounded-lg overflow-hidden">
         {loading ? (
           <div className="p-6 text-center text-muted text-sm">Loading...</div>
@@ -72,6 +129,14 @@ export default function RunsPage() {
           <table className="w-full text-sm">
             <thead>
               <tr className="text-xs text-muted border-b border-border">
+                <th className="px-4 py-2 w-8">
+                  <input
+                    ref={headerCheckRef}
+                    type="checkbox"
+                    onChange={toggleSelectAll}
+                    className="accent-accent cursor-pointer"
+                  />
+                </th>
                 <th className="text-left px-4 py-2">Test</th>
                 <th className="text-left px-4 py-2">Status</th>
                 <th className="text-left px-4 py-2">Duration</th>
@@ -82,7 +147,20 @@ export default function RunsPage() {
             </thead>
             <tbody>
               {runs.map((run) => (
-                <tr key={run.id} className="border-b border-border/50 hover:bg-bg-elevated transition-colors">
+                <tr
+                  key={run.id}
+                  className={`border-b border-border/50 hover:bg-bg-elevated transition-colors ${
+                    selected.has(run.id) ? "bg-accent/5" : ""
+                  }`}
+                >
+                  <td className="px-4 py-2.5 w-8">
+                    <input
+                      type="checkbox"
+                      checked={selected.has(run.id)}
+                      onChange={() => toggleSelect(run.id)}
+                      className="accent-accent cursor-pointer"
+                    />
+                  </td>
                   <td className="px-4 py-2.5 text-slate-300">
                     <div className="flex items-center gap-2">
                       {tests[run.test_id]?.name ?? <span className="text-muted italic">Deleted</span>}

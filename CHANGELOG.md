@@ -6,6 +6,21 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [0.1.17] — 2026-03-26
+
+### Added
+- **Bulk operations — tests** — checkbox column on the Tests list; header checkbox with indeterminate state for partial selections; bulk action bar appears on any selection with three actions:
+  - **Run All** — queues a pending run for each selected test (up to 50), redirects to `/runs`
+  - **Tag** — modal with comma-separated tag input and three modes: `Add` (union), `Remove` (subtract), `Replace` (overwrite all tags); updates all accessible tests atomically
+  - **Delete** — confirmation dialog, then deletes all selected tests the current user owns or admins (non-owner tests silently skipped)
+- **Bulk operations — runs** — same checkbox + bulk action bar on the Runs list; bulk **Delete** removes selected runs and their artifact directories
+- `POST /api/tests/bulk-delete` — batch delete up to 100 tests; authorization checked per item
+- `POST /api/tests/bulk-run` — batch queue up to 50 runs; dispatches via existing `dispatchRun` pipeline
+- `POST /api/tests/bulk-tag` — batch tag update with `add`/`remove`/`set` mode; up to 100 tests, 50 tags
+- `POST /api/runs/bulk-delete` — batch delete up to 200 runs + artifact cleanup per run
+
+---
+
 ## [0.1.16] — 2026-03-26
 
 ### Changed
