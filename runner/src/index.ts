@@ -152,15 +152,22 @@ async function main() {
       const page = await context.newPage();
 
       if (body.baseUrl) {
-        await page.goto(body.baseUrl);
+        // Fire-and-forget: don't block response on navigation. If the URL is
+        // unreachable from the runner network, the browser shows an error page
+        // but the recording session still opens successfully.
+        page.goto(body.baseUrl).catch(() => {});
       }
 
       recordingSessions.set(body.authStateId, {
         close: async () => {
           await context.storageState({ path: body.outputPath });
-          await browser.close();
-          stopVnc(body.authStateId);
-          recordingSessions.delete(body.authStateId);
+          try {
+            await browser.close();
+          } finally {
+            // Always release VNC even if browser.close() throws (e.g. crashed)
+            stopVnc(body.authStateId);
+            recordingSessions.delete(body.authStateId);
+          }
         },
       });
 

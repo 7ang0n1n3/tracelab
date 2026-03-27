@@ -6,6 +6,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [0.1.18] — 2026-03-27
+
+### Fixed
+- **Auth recording VNC not connecting** — `page.goto(baseUrl)` in the runner's `/record-auth` handler was awaited before sending the response; if the base URL was unreachable or slow, the request blocked for up to 30 seconds then returned a 500, causing the backend to surface "Runner unavailable" to the UI. Navigation is now fire-and-forget (`goto(...).catch(() => {})`), matching the non-blocking codegen flow. The VNC iframe opens immediately regardless of whether the initial navigation succeeds.
+- **VNC mutex leak on browser close failure** — `stopVnc` and `recordingSessions.delete` inside `session.close()` were skipped if `browser.close()` threw (e.g. crashed browser). Moved both into a `finally` block so the VNC lock is always released.
+
+---
+
 ## [0.1.17] — 2026-03-26
 
 ### Added
