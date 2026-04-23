@@ -3,6 +3,9 @@
 .env.local
 .env.*.local
 .understand-anything
+.entroly
+.codex
+.claude
 
 # Runtime data — contains DB, sessions, auth tokens, artifacts
 data/db/
@@ -17,6 +20,15 @@ node_modules/
 # Build output
 **/dist/
 **/.next/
+*.tsbuildinfo
+**/*.tsbuildinfo
+
+# Test reports and coverage
+coverage/
+**/coverage/
+.nyc_output/
+playwright-report/
+test-results/
 
 # Local dev logs
 .logs/
