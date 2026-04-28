@@ -2,7 +2,7 @@
   <img src="tracelab_logo.png" alt="TraceLab" width="260" />
 </p>
 
-# TraceLab `v0.1.19`
+# TraceLab `v0.1.20`
 
 Self-hosted browser test automation platform. Write, run, and monitor Playwright-based tests through a web UI — no CI pipeline required.
 
@@ -63,7 +63,7 @@ Press `Ctrl+C` to stop all services. Logs are written to `.logs/` and streamed t
 
 ---
 
-Once running, open [http://localhost:3000](http://localhost:3000) and sign in with the default admin account:
+Once running, open [http://localhost:3273](http://localhost:3273) and sign in with the default admin account:
 
 | Username | Password |
 |----------|----------|
@@ -77,7 +77,7 @@ Environment variables can be set in a `.env` file at the project root:
 
 | Variable        | Default | Description                                                    |
 |-----------------|---------|----------------------------------------------------------------|
-| `FRONTEND_PORT` | `3000`  | Frontend port                                                  |
+| `FRONTEND_PORT` | `3273`  | Frontend port                                                  |
 | `BACKEND_PORT`  | `4000`  | Backend API port                                               |
 | `RUNNER_PORT`   | `5000`  | Test runner port                                               |
 | `NOVNC_PORT`    | `6080`  | noVNC port for live browser view during headed runs            |
@@ -121,7 +121,7 @@ log('Login complete');
 ┌────────────┐     rewrites      ┌─────────────┐     HTTP      ┌────────────┐
 │  Frontend  │ ───────────────▶  │   Backend   │ ────────────▶ │   Runner   │
 │  Next.js   │                   │   Fastify   │               │  Fastify + │
-│  :3000     │                   │   :4000     │               │  Playwright│
+│  :3273     │                   │   :4000     │               │  Playwright│
 └────────────┘                   └──────┬──────┘               │  :5000     │
                                         │                      └────────────┘
                                         ▼

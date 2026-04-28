@@ -88,7 +88,7 @@ for i in $(seq 1 20); do
 done
 
 # Start frontend
-FRONTEND_PORT="${FRONTEND_PORT:-3000}"
+FRONTEND_PORT="${FRONTEND_PORT:-3273}"
 info "Starting frontend on :${FRONTEND_PORT}..."
 (cd frontend && PORT="$FRONTEND_PORT" npm run dev) >"$LOG_DIR/frontend.log" 2>&1 &
 PIDS+=($!)

@@ -6,6 +6,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [0.1.20] — 2026-04-29
+
+### Changed
+- **Frontend port default** — changed the default TraceLab UI port from `3000` to `3273` across Docker Compose, local startup scripts, frontend container runtime metadata, backend CSRF origin defaults, and documentation.
+- **Sidebar version display** — the interface now reads the displayed version from `frontend/package.json` instead of a hard-coded string, keeping the UI aligned with package metadata.
+
+---
+
 ## [0.1.19] — 2026-04-28
 
 ### Changed
@@ -129,7 +137,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## [0.1.9] — 2026-03-23
 
 ### Fixed
-- Login blocked after clean+build — CSRF origin check now allows both `http://localhost:3000` and `http://127.0.0.1:3000`; previously only the `localhost` form was accepted, so browsers using `127.0.0.1` received a 403 on every login attempt
+- Login blocked after clean+build — CSRF origin check now allows both `http://localhost:3273` and `http://127.0.0.1:3273`; previously only the `localhost` form was accepted, so browsers using `127.0.0.1` received a 403 on every login attempt
 
 ---
 

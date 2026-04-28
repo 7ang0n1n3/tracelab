@@ -52,7 +52,7 @@ case "$COMMAND" in
 
     mkdir -p data/db data/artifacts data/auth
 
-    FRONTEND_PORT="${FRONTEND_PORT:-3000}"
+    FRONTEND_PORT="${FRONTEND_PORT:-3273}"
     BACKEND_PORT="${BACKEND_PORT:-4000}"
     RUNNER_PORT="${RUNNER_PORT:-5000}"
 

@@ -17,7 +17,7 @@ import { initScheduler } from "./scheduler/index";
 
 const app = Fastify({ logger: true });
 
-const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:3000";
+const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:3273";
 
 // Build the set of allowed origins: always include both localhost and 127.0.0.1 variants
 function buildAllowedOrigins(frontendUrl: string): string[] {
