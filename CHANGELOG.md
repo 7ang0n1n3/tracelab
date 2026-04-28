@@ -6,6 +6,21 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [0.1.23] — 2026-04-29
+
+### Fixed
+- **Password-change session lockout** — invalid or expired session cookies now return `401 Session expired` and clear the stale cookie instead of triggering a `429 Too Many Requests` lockout during first-login password changes.
+- **Backend readiness endpoint** — added `GET /health` to the backend so Docker startup checks and container connectivity probes can verify the service on its internal port.
+
+---
+
+## [0.1.22] — 2026-04-29
+
+### Changed
+- **Docker host port defaults** — changed exposed Docker host ports to use the `273` suffix consistently: frontend `3273`, backend `4273`, runner `5273`, and noVNC `6353`. Container-internal service ports remain `3000`, `4000`, `5000`, and `6080`.
+
+---
+
 ## [0.1.21] — 2026-04-29
 
 ### Fixed

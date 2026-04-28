@@ -1,6 +1,6 @@
 {
   "name": "tracelab-runner",
-  "version": "0.1.21",
+  "version": "0.1.23",
   "private": true,
   "scripts": {
     "dev": "tsx watch src/index.ts",

@@ -2,7 +2,7 @@
   <img src="tracelab_logo.png" alt="TraceLab" width="260" />
 </p>
 
-# TraceLab `v0.1.21`
+# TraceLab `v0.1.23`
 
 Self-hosted browser test automation platform. Write, run, and monitor Playwright-based tests through a web UI — no CI pipeline required.
 
@@ -79,9 +79,9 @@ Environment variables can be set in a `.env` file at the project root:
 |-----------------|---------|----------------------------------------------------------------|
 | `FRONTEND_PORT` | `3273`  | Frontend host port                                             |
 | `FRONTEND_URL`  | `http://localhost:3273` | Public browser URL allowed by backend CSRF checks |
-| `BACKEND_PORT`  | `4000`  | Backend API port                                               |
-| `RUNNER_PORT`   | `5000`  | Test runner port                                               |
-| `NOVNC_PORT`    | `6080`  | noVNC port for live browser view during headed runs            |
+| `BACKEND_PORT`  | `4273`  | Backend host port                                              |
+| `RUNNER_PORT`   | `5273`  | Test runner host port                                          |
+| `NOVNC_PORT`    | `6353`  | noVNC host port for live browser view during headed runs       |
 | `RUNNER_SECRET` | *(none)*| Shared secret between backend and runner (set for security)    |
 | `HTTPS_ONLY`    | `false` | Set to `true` to mark session cookies as Secure (HTTPS only)  |
 
@@ -116,7 +116,7 @@ log('Login complete');
 
 > **Failure screenshot:** If a test throws an uncaught error, a `failure.png` is automatically captured from the current page before the run is marked failed.
 
-> **Headed mode:** When a test runs with headless disabled, a live browser view is available via noVNC at `http://localhost:<NOVNC_PORT>` (default port 6080).
+> **Headed mode:** When a test runs with headless disabled, a live browser view is available via noVNC at `http://localhost:<NOVNC_PORT>` (default host port 6353).
 
 ## Architecture
 
@@ -124,8 +124,8 @@ log('Login complete');
 ┌────────────┐     rewrites      ┌─────────────┐     HTTP      ┌────────────┐
 │  Frontend  │ ───────────────▶  │   Backend   │ ────────────▶ │   Runner   │
 │  Next.js   │                   │   Fastify   │               │  Fastify + │
-│  :3273     │                   │   :4000     │               │  Playwright│
-└────────────┘                   └──────┬──────┘               │  :5000     │
+│  :3273     │                   │   :4273     │               │  Playwright│
+└────────────┘                   └──────┬──────┘               │  :5273     │
                                         │                      └────────────┘
                                         ▼
                                    SQLite (node:sqlite)
@@ -137,7 +137,7 @@ log('Login complete');
 - **Runner** — Fastify + Playwright 1.59.1 on `mcr.microsoft.com/playwright:v1.59.1-jammy`
 - **Data** — Bind-mounted at `./data/` (db, artifacts, auth states, test files)
 
-Docker publishes the frontend on host port `3273` by default while the Next.js container listens internally on port `3000`.
+Docker publishes host ports `3273`, `4273`, `5273`, and `6353` by default. Inside the Docker network, the containers still listen on `3000`, `4000`, `5000`, and `6080`.
 
 ## User Roles
 

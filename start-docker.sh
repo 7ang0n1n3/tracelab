@@ -53,8 +53,8 @@ case "$COMMAND" in
     mkdir -p data/db data/artifacts data/auth
 
     FRONTEND_PORT="${FRONTEND_PORT:-3273}"
-    BACKEND_PORT="${BACKEND_PORT:-4000}"
-    RUNNER_PORT="${RUNNER_PORT:-5000}"
+    BACKEND_PORT="${BACKEND_PORT:-4273}"
+    RUNNER_PORT="${RUNNER_PORT:-5273}"
 
     if [ "$BUILD" = true ]; then
       info "Building images..."
@@ -67,7 +67,7 @@ case "$COMMAND" in
     info "Waiting for services to be ready..."
     for i in $(seq 1 30); do
       if docker compose exec -T backend node -e \
-        "require('http').get('http://localhost:${BACKEND_PORT}/health', r => process.exit(r.statusCode === 200 ? 0 : 1)).on('error', () => process.exit(1))" \
+        "require('http').get('http://localhost:4000/health', r => process.exit(r.statusCode === 200 ? 0 : 1)).on('error', () => process.exit(1))" \
         &>/dev/null 2>&1; then
         break
       fi

@@ -40,6 +40,9 @@ async function main() {
     origin: ALLOWED_ORIGINS,
     credentials: true,
   });
+
+  app.get("/health", async () => ({ status: "ok" }));
+
   // Initialize DB schema + seed
   initSchema();
 
