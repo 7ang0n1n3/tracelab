@@ -6,6 +6,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [0.1.19] — 2026-04-28
+
+### Changed
+- **Playwright runtime update** — upgraded runner dependencies `playwright` and `@playwright/test` from `1.42.1` to `1.59.1`.
+- **Runner Docker image alignment** — updated the runner base image from `mcr.microsoft.com/playwright:v1.42.1-jammy` to `mcr.microsoft.com/playwright:v1.59.1-jammy` so bundled browser binaries match the npm Playwright version.
+
+---
+
 ## [0.1.18] — 2026-03-27
 
 ### Fixed

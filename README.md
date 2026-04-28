@@ -2,7 +2,7 @@
   <img src="tracelab_logo.png" alt="TraceLab" width="260" />
 </p>
 
-# TraceLab `v0.1.18`
+# TraceLab `v0.1.19`
 
 Self-hosted browser test automation platform. Write, run, and monitor Playwright-based tests through a web UI — no CI pipeline required.
 
@@ -131,7 +131,7 @@ log('Login complete');
 
 - **Frontend** — Next.js 15 (App Router, standalone output)
 - **Backend** — Fastify 4 on Node.js 22 with built-in SQLite
-- **Runner** — Fastify + Playwright 1.42.1 on `mcr.microsoft.com/playwright:v1.42.1-jammy`
+- **Runner** — Fastify + Playwright 1.59.1 on `mcr.microsoft.com/playwright:v1.59.1-jammy`
 - **Data** — Bind-mounted at `./data/` (db, artifacts, auth states, test files)
 
 ## User Roles
