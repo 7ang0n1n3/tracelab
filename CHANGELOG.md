@@ -6,10 +6,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [0.1.21] — 2026-04-29
+
+### Fixed
+- **Docker frontend port publishing** — corrected the Docker Compose mapping to publish host `3273` to the frontend container's internal Next.js port `3000`, and updated `.env.example` so Compose no longer falls back to a stale `FRONTEND_PORT=3000` value.
+
+---
+
 ## [0.1.20] — 2026-04-29
 
 ### Changed
-- **Frontend port default** — changed the default TraceLab UI port from `3000` to `3273` across Docker Compose, local startup scripts, frontend container runtime metadata, backend CSRF origin defaults, and documentation.
+- **Frontend port default** — changed the default TraceLab UI host port from `3000` to `3273` across Docker Compose, local startup scripts, backend CSRF origin defaults, and documentation. The frontend container keeps Next.js on internal port `3000`.
 - **Sidebar version display** — the interface now reads the displayed version from `frontend/package.json` instead of a hard-coded string, keeping the UI aligned with package metadata.
 
 ---

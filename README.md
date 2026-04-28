@@ -2,7 +2,7 @@
   <img src="tracelab_logo.png" alt="TraceLab" width="260" />
 </p>
 
-# TraceLab `v0.1.20`
+# TraceLab `v0.1.21`
 
 Self-hosted browser test automation platform. Write, run, and monitor Playwright-based tests through a web UI — no CI pipeline required.
 
@@ -77,7 +77,7 @@ Environment variables can be set in a `.env` file at the project root:
 
 | Variable        | Default | Description                                                    |
 |-----------------|---------|----------------------------------------------------------------|
-| `FRONTEND_PORT` | `3273`  | Frontend port                                                  |
+| `FRONTEND_PORT` | `3273`  | Frontend host port                                             |
 | `BACKEND_PORT`  | `4000`  | Backend API port                                               |
 | `RUNNER_PORT`   | `5000`  | Test runner port                                               |
 | `NOVNC_PORT`    | `6080`  | noVNC port for live browser view during headed runs            |
@@ -133,6 +133,8 @@ log('Login complete');
 - **Backend** — Fastify 4 on Node.js 22 with built-in SQLite
 - **Runner** — Fastify + Playwright 1.59.1 on `mcr.microsoft.com/playwright:v1.59.1-jammy`
 - **Data** — Bind-mounted at `./data/` (db, artifacts, auth states, test files)
+
+Docker publishes the frontend on host port `3273` by default while the Next.js container listens internally on port `3000`.
 
 ## User Roles
 
