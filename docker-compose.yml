@@ -24,6 +24,7 @@ services:
       - RUNNER_URL=http://runner:5000
       - RUNNER_NOVNC_PORT=${NOVNC_PORT:-6080}
       - RUNNER_SECRET=${RUNNER_SECRET:-}
+      - FRONTEND_URL=${FRONTEND_URL:-http://localhost:3273}
       - PORT=4000
     volumes:
       - ./data:/data

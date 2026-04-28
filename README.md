@@ -78,11 +78,14 @@ Environment variables can be set in a `.env` file at the project root:
 | Variable        | Default | Description                                                    |
 |-----------------|---------|----------------------------------------------------------------|
 | `FRONTEND_PORT` | `3273`  | Frontend host port                                             |
+| `FRONTEND_URL`  | `http://localhost:3273` | Public browser URL allowed by backend CSRF checks |
 | `BACKEND_PORT`  | `4000`  | Backend API port                                               |
 | `RUNNER_PORT`   | `5000`  | Test runner port                                               |
 | `NOVNC_PORT`    | `6080`  | noVNC port for live browser view during headed runs            |
 | `RUNNER_SECRET` | *(none)*| Shared secret between backend and runner (set for security)    |
 | `HTTPS_ONLY`    | `false` | Set to `true` to mark session cookies as Secure (HTTPS only)  |
+
+For Docker or Portainer deployments accessed by server IP or domain, set `FRONTEND_URL` to the exact browser URL, for example `http://10.0.1.115:3273`. Otherwise login requests can be blocked by the backend CSRF origin check.
 
 ## Writing Tests
 
