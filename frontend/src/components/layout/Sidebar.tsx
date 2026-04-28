@@ -19,6 +19,9 @@ import {
   Clock,
 } from "lucide-react";
 import { useTheme } from "@/context/ThemeContext";
+import packageJson from "../../../package.json";
+
+const appVersion = packageJson.version;
 
 const nav = [
   { href: "/dashboard", label: "Dashboard",    icon: LayoutDashboard },
@@ -75,7 +78,7 @@ export function Sidebar() {
       {/* Logo */}
       <div className="flex flex-col items-center justify-center px-4 py-4 border-b border-border gap-1">
         <Image src="/tracelab_logo.png" alt="TraceLab" width={70} height={20} style={{ objectFit: "contain" }} />
-        <span className="text-[10px] text-muted">v0.1.15</span>
+        <span className="text-[10px] text-muted">v{appVersion}</span>
       </div>
 
       {/* Nav */}
